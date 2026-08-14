@@ -1,6 +1,6 @@
-import type { RelaySettings, TimelineKind, TimelinePage, ViewerProfile } from '../types'
+import type { ConversationPage, NotificationPage, RelaySettings, SearchPage, SearchProduct, TimelineKind, TimelinePage, ViewerProfile } from '../types'
 import { OPERATIONS } from './operations'
-import { parseTimeline, parseViewer } from './parser'
+import { parseConversation, parseNotifications, parseSearch, parseTimeline, parseUserProfile, parseViewer } from './parser'
 
 interface GraphqlError {
   message?: string
@@ -109,4 +109,78 @@ export async function fetchUserTweets(
   if (cursor) variables.cursor = cursor
   const value = await graphqlGet(settings, OPERATIONS.userTweets, variables, signal)
   return parseTimeline(value)
+}
+
+export async function fetchUserProfile(settings: RelaySettings, handle: string, signal?: AbortSignal): Promise<ViewerProfile> {
+  const value = await graphqlGet(
+    settings,
+    OPERATIONS.userByScreenName,
+    { screen_name: handle, withGrokTranslatedBio: true },
+    signal
+  )
+  return parseUserProfile(value)
+}
+
+export async function fetchConversation(
+  settings: RelaySettings,
+  tweetId: string,
+  cursor?: string,
+  signal?: AbortSignal
+): Promise<ConversationPage> {
+  const variables: Record<string, unknown> = {
+    focalTweetId: tweetId,
+    referrer: 'tweet',
+    with_rux_injections: false,
+    rankingMode: 'Relevance',
+    includePromotedContent: false,
+    withCommunity: true,
+    withQuickPromoteEligibilityTweetFields: true,
+    withBirdwatchNotes: true,
+    withVoice: true
+  }
+  if (cursor) variables.cursor = cursor
+  const value = await graphqlGet(settings, OPERATIONS.tweetDetail, variables, signal)
+  return parseConversation(value, tweetId)
+}
+
+export async function fetchNotifications(
+  settings: RelaySettings,
+  tab: 'all' | 'mentions',
+  cursor?: string,
+  signal?: AbortSignal
+): Promise<NotificationPage> {
+  const variables: Record<string, unknown> = {
+    timeline_type: tab === 'mentions' ? 'Mentions' : 'All',
+    count: 20
+  }
+  if (cursor) variables.cursor = cursor
+  const value = await graphqlGet(settings, OPERATIONS.notifications, variables, signal)
+  return parseNotifications(value)
+}
+
+const SEARCH_PRODUCTS: Record<SearchProduct, string> = {
+  top: 'Top',
+  latest: 'Latest',
+  people: 'People',
+  media: 'Media'
+}
+
+export async function searchTwitter(
+  settings: RelaySettings,
+  query: string,
+  product: SearchProduct,
+  cursor?: string,
+  signal?: AbortSignal
+): Promise<SearchPage> {
+  const variables: Record<string, unknown> = {
+    rawQuery: query,
+    count: 20,
+    querySource: 'typed_query',
+    product: SEARCH_PRODUCTS[product],
+    withGrokTranslatedBio: false,
+    withQuickPromoteEligibilityTweetFields: false
+  }
+  if (cursor) variables.cursor = cursor
+  const value = await graphqlGet(settings, OPERATIONS.search, variables, signal)
+  return parseSearch(value, product === 'people')
 }

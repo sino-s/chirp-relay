@@ -50,7 +50,7 @@ export function TimelineFeed({ enabled = true, emptyMessage = '表示できる�
       (page) => setState((current) => {
         const byId = new Map(current.tweets.map((tweet) => [tweet.id, tweet]))
         for (const tweet of page.tweets) byId.set(tweet.id, tweet)
-        return { tweets: [...byId.values()], cursor: page.nextCursor, loading: false, loadingMore: false }
+        return { tweets: [...byId.values()], cursor: page.nextCursor === requestedCursor ? undefined : page.nextCursor, loading: false, loadingMore: false }
       }),
       (error: unknown) => setState((current) => ({
         ...current,

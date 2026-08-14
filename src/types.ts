@@ -57,6 +57,7 @@ export interface Tweet {
   links: TweetLink[]
   quotedTweet?: Tweet
   repostedBy?: string
+  inReplyToId?: string
   url: string
 }
 
@@ -66,3 +67,33 @@ export interface TimelinePage {
 }
 
 export type TimelineKind = 'for-you' | 'following'
+
+export interface ConversationPage {
+  focalTweet?: Tweet
+  ancestors: Tweet[]
+  replies: Tweet[]
+  nextCursor?: string
+}
+
+export interface NotificationItem {
+  id: string
+  timestamp: number
+  kind: string
+  message: string
+  actors: TweetAuthor[]
+  targetTweet?: Tweet
+  targetUserId?: string
+}
+
+export interface NotificationPage {
+  notifications: NotificationItem[]
+  nextCursor?: string
+}
+
+export type SearchProduct = 'top' | 'latest' | 'people' | 'media'
+
+export interface SearchPage {
+  tweets: Tweet[]
+  users: ViewerProfile[]
+  nextCursor?: string
+}

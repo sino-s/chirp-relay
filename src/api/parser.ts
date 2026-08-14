@@ -1,4 +1,4 @@
-import type { TimelinePage, Tweet, TweetAuthor, TweetLink, TweetMedia, ViewerProfile } from '../types'
+import type { ConversationPage, NotificationItem, NotificationPage, SearchPage, TimelinePage, Tweet, TweetAuthor, TweetLink, TweetMedia, ViewerProfile } from '../types'
 
 type JsonObject = Record<string, unknown>
 
@@ -70,8 +70,31 @@ function findTweetResult(value: unknown): JsonObject | undefined {
   return found
 }
 
-function parseAuthor(result: JsonObject): TweetAuthor | undefined {
-  const user = objectAt(result, 'core', 'user_results', 'result')
+function collectTweetResults(value: unknown): JsonObject[] {
+  const results: JsonObject[] = []
+  function walk(current: unknown): void {
+    if (Array.isArray(current)) {
+      for (const item of current) walk(item)
+      return
+    }
+    if (!isObject(current)) return
+    const result = objectAt(current, 'tweet_results', 'result')
+    const tweet = result ? findTweetResult(result) : undefined
+    if (tweet) {
+      results.push(tweet)
+      return
+    }
+    for (const child of Object.values(current)) walk(child)
+  }
+  walk(value)
+  if (results.length === 0) {
+    const direct = findTweetResult(value)
+    if (direct) results.push(direct)
+  }
+  return results
+}
+
+function parseUserAuthor(user: JsonObject): TweetAuthor | undefined {
   if (!user) return undefined
   const id = stringAt(user, 'rest_id')
   const handle = stringAt(user, 'core', 'screen_name') ?? stringAt(user, 'legacy', 'screen_name')
@@ -86,6 +109,11 @@ function parseAuthor(result: JsonObject): TweetAuthor | undefined {
       '',
     verified: booleanAt(user, 'is_blue_verified') || booleanAt(user, 'verification', 'verified')
   }
+}
+
+function parseAuthor(result: JsonObject): TweetAuthor | undefined {
+  const user = objectAt(result, 'core', 'user_results', 'result')
+  return user ? parseUserAuthor(user) : undefined
 }
 
 function parseLinks(legacy: JsonObject): TweetLink[] {
@@ -148,7 +176,7 @@ function cleanText(text: string, media: TweetMedia[], links: TweetLink[], legacy
   return cleaned.trim()
 }
 
-function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefined {
+export function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefined {
   if (depth > 1) return undefined
   const wrapperLegacy = objectAt(result, 'legacy')
   if (!wrapperLegacy) return undefined
@@ -183,6 +211,7 @@ function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefined {
     links,
     quotedTweet: quotedSource ? parseTweetResult(quotedSource, depth + 1) : undefined,
     repostedBy: wrapperAuthor?.name,
+    inReplyToId: stringAt(legacy, 'in_reply_to_status_id_str'),
     url: `https://x.com/${author.handle}/status/${id}`
   }
 }
@@ -222,6 +251,10 @@ export function parseTimeline(value: unknown): TimelinePage {
 export function parseViewer(value: unknown): ViewerProfile {
   const result = objectAt(value, 'data', 'viewer', 'user_results', 'result')
   if (!result) throw new Error('プロフィール情報を読み取れませんでした。')
+  return parseUserProfileResult(result)
+}
+
+function parseUserProfileResult(result: JsonObject): ViewerProfile {
   const id = stringAt(result, 'rest_id')
   const handle = stringAt(result, 'core', 'screen_name')
   if (!id || !handle) throw new Error('プロフィール情報が不完全です。')
@@ -237,4 +270,138 @@ export function parseViewer(value: unknown): ViewerProfile {
     posts: numberAt(result, 'legacy', 'statuses_count'),
     joinedAt: stringAt(result, 'core', 'created_at')
   }
+}
+
+export function parseUserProfile(value: unknown): ViewerProfile {
+  const result = objectAt(value, 'data', 'user', 'result')
+  if (!result) throw new Error('ユーザー情報を読み取れませんでした。')
+  return parseUserProfileResult(result)
+}
+
+export function parseConversation(value: unknown, focalTweetId: string): ConversationPage {
+  const byId = new Map<string, Tweet>()
+  for (const entry of findEntries(value)) {
+    const entryId = String(entry.entryId)
+    if (!entryId.startsWith('tweet-') && !entryId.startsWith('conversationthread-')) continue
+    for (const result of collectTweetResults(entry)) {
+      const tweet = parseTweetResult(result)
+      if (tweet) byId.set(tweet.id, tweet)
+    }
+  }
+
+  const focalTweet = byId.get(focalTweetId)
+  const ancestorIds = new Set<string>()
+  const ancestors: Tweet[] = []
+  let parentId = focalTweet?.inReplyToId
+  while (parentId && !ancestorIds.has(parentId)) {
+    const parent = byId.get(parentId)
+    if (!parent) break
+    ancestorIds.add(parentId)
+    ancestors.unshift(parent)
+    parentId = parent.inReplyToId
+  }
+  const replies = [...byId.values()].filter((tweet) => tweet.id !== focalTweetId && !ancestorIds.has(tweet.id))
+  return { focalTweet, ancestors, replies, nextCursor: findBottomCursor(value) }
+}
+
+function findNotificationObject(entry: JsonObject): JsonObject | undefined {
+  let found: JsonObject | undefined
+  visit(entry, (object) => {
+    if (typeof object.id === 'string' && isObject(object.rich_message) && 'notification_icon' in object) {
+      found = object
+      return true
+    }
+  })
+  return found
+}
+
+function parseNotificationEntry(entry: JsonObject): NotificationItem | undefined {
+  const notification = findNotificationObject(entry)
+  if (!notification) return undefined
+  const id = stringAt(notification, 'id')
+  if (!id) return undefined
+  let details: JsonObject | undefined
+  visit(entry, (object) => {
+    if (Array.isArray(object.from_users) && Array.isArray(object.target_objects)) {
+      details = object
+      return true
+    }
+  })
+  const fromUsers = details?.from_users
+  const actors: TweetAuthor[] = []
+  if (Array.isArray(fromUsers)) {
+    for (const wrapper of fromUsers) {
+      const user = objectAt(wrapper, 'user_results', 'result')
+      const author = user ? parseUserAuthor(user) : undefined
+      if (author) actors.push(author)
+    }
+  }
+  const targetObjects = details?.target_objects
+  let targetTweet: Tweet | undefined
+  if (Array.isArray(targetObjects)) {
+    for (const target of targetObjects) {
+      const result = objectAt(target, 'tweet_results', 'result') ?? findTweetResult(target)
+      if (!result) continue
+      targetTweet = parseTweetResult(result)
+      if (targetTweet) break
+    }
+  }
+  const icon = objectAt(notification, 'notification_icon')
+  return {
+    id,
+    timestamp: numberAt(notification, 'timestamp_ms'),
+    kind: stringAt(icon, 'id') ?? stringAt(icon, 'name') ?? 'notification',
+    message: stringAt(notification, 'rich_message', 'text') ?? '',
+    actors,
+    targetTweet,
+    targetUserId: actors[0]?.id
+  }
+}
+
+export function parseNotifications(value: unknown): NotificationPage {
+  const notifications: NotificationItem[] = []
+  const seen = new Set<string>()
+  for (const entry of findEntries(value)) {
+    if (!String(entry.entryId).startsWith('notification-')) continue
+    const notification = parseNotificationEntry(entry)
+    if (notification && !seen.has(notification.id)) {
+      seen.add(notification.id)
+      notifications.push(notification)
+    }
+  }
+  return { notifications, nextCursor: findBottomCursor(value) }
+}
+
+export function parseSearch(value: unknown, people: boolean): SearchPage {
+  if (!people) {
+    const byId = new Map<string, Tweet>()
+    for (const entry of findEntries(value)) {
+      const entryId = String(entry.entryId)
+      if (entryId.startsWith('cursor-') || entryId.startsWith('promoted-') || entryId.startsWith('relevanceprompt-')) continue
+      for (const result of collectTweetResults(entry)) {
+        const tweet = parseTweetResult(result)
+        if (tweet && !byId.has(tweet.id)) byId.set(tweet.id, tweet)
+      }
+    }
+    return { tweets: [...byId.values()], users: [], nextCursor: findBottomCursor(value) }
+  }
+  const users: ViewerProfile[] = []
+  const seen = new Set<string>()
+  for (const entry of findEntries(value)) {
+    if (!String(entry.entryId).startsWith('user-')) continue
+    let result: JsonObject | undefined
+    visit(entry, (object) => {
+      if (typeof object.rest_id === 'string' && isObject(object.core) && typeof object.core.screen_name === 'string') {
+        result = object
+        return true
+      }
+    })
+    if (!result) continue
+    const profile = parseUserProfileResult(result)
+    if (!seen.has(profile.id)) {
+      seen.add(profile.id)
+      users.push(profile)
+    }
+  }
+  return { tweets: [], users, nextCursor: findBottomCursor(value) }
 }

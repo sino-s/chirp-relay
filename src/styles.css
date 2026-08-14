@@ -123,6 +123,22 @@ h1, h2, h3 { text-wrap: balance; scroll-margin-top: 5rem; }
   contain-intrinsic-size: auto 280px;
 }
 
+.media-arrow {
+  position: fixed;
+  top: 50%;
+  z-index: 60;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  translate: 0 -50%;
+  place-items: center;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.45);
+  color: white;
+  transition: background-color 150ms;
+}
+.media-arrow:hover { background: rgb(0 0 0 / 0.7); }
+
 @media (min-width: 601px) {
   body { background: color-mix(in srgb, var(--canvas) 96%, var(--primary)); }
 }

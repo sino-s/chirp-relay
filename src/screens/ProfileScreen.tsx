@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useState } from 'preact/hooks'
-import { fetchUserTweets, fetchViewer } from '../api/client'
+import { fetchUserProfile, fetchUserTweets, fetchViewer } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
 import { CalendarIcon, WarningIcon } from '../components/Icons'
 import { TimelineFeed } from '../components/TimelineFeed'
 import type { RelaySettings, ViewerProfile } from '../types'
 
-export function ProfileScreen({ settings, onSettings }: { settings: RelaySettings; onSettings: () => void }) {
+export function ProfileScreen({ settings, onSettings, userHandle, onBack }: { settings: RelaySettings; onSettings: () => void; userHandle?: string; onBack?: () => void }) {
   const [profile, setProfile] = useState<ViewerProfile>()
   const [error, setError] = useState<string>()
   const [refreshToken, setRefreshToken] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
+    setProfile(undefined)
     setError(undefined)
-    fetchViewer(settings, controller.signal).then(setProfile, (reason: unknown) => {
+    const request = userHandle ? fetchUserProfile(settings, userHandle, controller.signal) : fetchViewer(settings, controller.signal)
+    request.then(setProfile, (reason: unknown) => {
       if (reason instanceof DOMException && reason.name === 'AbortError') return
       setError(reason instanceof Error ? reason.message : 'プロフィールを読み込めませんでした。')
     })
     return () => controller.abort()
-  }, [settings, refreshToken])
+  }, [settings, userHandle, refreshToken])
 
   const loadTweets = useCallback((cursor?: string, signal?: AbortSignal) => {
     if (!profile) return Promise.resolve({ tweets: [] })
@@ -33,7 +35,7 @@ export function ProfileScreen({ settings, onSettings }: { settings: RelaySetting
 
   return (
     <section>
-      <AppHeader title={profile?.name ?? 'プロフィール'} subtitle={profile ? `${profile.posts.toLocaleString('ja-JP')}件の投稿` : undefined} onRefresh={refresh} onSettings={onSettings} />
+      <AppHeader title={profile?.name ?? 'プロフィール'} subtitle={profile ? `${profile.posts.toLocaleString('ja-JP')}件の投稿` : undefined} onBack={onBack} onRefresh={refresh} onSettings={onSettings} />
       {error ? (
         <div class="flex flex-col items-center gap-3 px-6 py-16 text-center" role="alert">
           <WarningIcon class="text-danger" size={30} /><p class="text-sm text-muted">{error}</p>

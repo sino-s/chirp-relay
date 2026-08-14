@@ -66,3 +66,31 @@ export function CheckIcon(props: IconProps): JSX.Element {
 export function WarningIcon(props: IconProps): JSX.Element {
   return <Icon {...props}><path d="M10.3 3.6 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></Icon>
 }
+
+export function SearchIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></Icon>
+}
+
+export function BellIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></Icon>
+}
+
+export function BackIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="m15 18-6-6 6-6" /></Icon>
+}
+
+export function CloseIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="M18 6 6 18M6 6l12 12" /></Icon>
+}
+
+export function ChevronLeftIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="m15 18-6-6 6-6" /></Icon>
+}
+
+export function ChevronRightIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="m9 18 6-6-6-6" /></Icon>
+}
+
+export function PlayIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path fill="currentColor" stroke="none" d="m8 5 11 7-11 7z" /></Icon>
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseTimeline, parseViewer } from './parser'
+import { parseConversation, parseNotifications, parseSearch, parseTimeline, parseViewer } from './parser'
 
 function user(id: string, handle: string, name: string) {
   return {
@@ -76,5 +76,74 @@ describe('parseViewer', () => {
     result.legacy = { description: 'bio', followers_count: 12, friends_count: 3, statuses_count: 99 }
     const profile = parseViewer({ data: { viewer: { user_results: { result } } } })
     expect(profile).toMatchObject({ id: 'viewer', handle: 'me', followers: 12, following: 3, posts: 99 })
+  })
+})
+
+describe('parseConversation', () => {
+  it('separates ancestors, the focal post and replies', () => {
+    const parent = tweet('1', 'parent')
+    const focal = tweet('2', 'focal')
+    const reply = tweet('3', 'reply')
+    Object.assign(focal.legacy, { in_reply_to_status_id_str: '1' })
+    Object.assign(reply.legacy, { in_reply_to_status_id_str: '2' })
+    const value = { entries: [
+      { entryId: 'tweet-1', content: { tweet_results: { result: parent } } },
+      { entryId: 'tweet-2', content: { tweet_results: { result: focal } } },
+      { entryId: 'conversationthread-3', content: { tweet_results: { result: reply } } },
+      { entryId: 'cursor-bottom', content: { value: 'more-replies', cursorType: 'Bottom' } }
+    ] }
+
+    expect(parseConversation(value, '2')).toMatchObject({
+      focalTweet: { id: '2' },
+      ancestors: [{ id: '1' }],
+      replies: [{ id: '3' }],
+      nextCursor: 'more-replies'
+    })
+  })
+})
+
+describe('parseNotifications', () => {
+  it('connects actors and the target post to a notification', () => {
+    const value = { entries: [{
+      entryId: 'notification-n1',
+      content: {
+        itemContent: {
+          id: 'n1',
+          notification_icon: { id: 'heart' },
+          rich_message: { text: 'いいねされました' },
+          timestamp_ms: '123'
+        },
+        notificationDetails: {
+          from_users: [{ user_results: { result: user('u1', 'alice', 'Alice') } }],
+          target_objects: [{ tweet_results: { result: tweet('10', 'target') } }]
+        }
+      }
+    }, { entryId: 'cursor-bottom', content: { value: 'next', cursorType: 'Bottom' } }] }
+
+    const page = parseNotifications(value)
+    expect(page.notifications[0]).toMatchObject({
+      id: 'n1',
+      kind: 'heart',
+      timestamp: 123,
+      actors: [{ handle: 'alice' }],
+      targetTweet: { id: '10' }
+    })
+    expect(page.nextCursor).toBe('next')
+  })
+})
+
+describe('parseSearch', () => {
+  it('reads people results', () => {
+    const page = parseSearch({ entries: [{ entryId: 'user-u1', content: { user_results: { result: user('u1', 'alice', 'Alice') } } }] }, true)
+    expect(page.users).toMatchObject([{ id: 'u1', handle: 'alice' }])
+    expect(page.tweets).toEqual([])
+  })
+
+  it('finds posts nested inside media grid modules', () => {
+    const page = parseSearch({ entries: [{
+      entryId: 'search-grid-1',
+      content: { items: [{ item: { tweet_results: { result: tweet('20', 'media result') } } }] }
+    }] }, false)
+    expect(page.tweets).toMatchObject([{ id: '20', text: 'media result' }])
   })
 })
