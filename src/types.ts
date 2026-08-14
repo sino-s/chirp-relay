@@ -29,6 +29,7 @@ export interface TweetMedia {
   type: 'photo' | 'video' | 'animated_gif'
   previewUrl: string
   playbackUrl?: string
+  playbackUrls?: string[]
   width?: number
   height?: number
   altText?: string

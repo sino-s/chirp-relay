@@ -1,7 +1,8 @@
-import type { ComponentChildren, JSX } from 'preact'
+import type { JSX } from 'preact'
 import { routeHref } from '../router'
-import type { Tweet, TweetLink } from '../types'
+import type { Tweet } from '../types'
 import { HeartIcon, PlayIcon, ReplyIcon, RepostIcon, ViewsIcon } from './Icons'
+import { TweetText } from './TweetText'
 
 function compactNumber(value: number): string {
   return new Intl.NumberFormat('ja-JP', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
@@ -20,22 +21,6 @@ function relativeTime(value: string): string {
   const days = Math.round(hours / 24)
   if (Math.abs(days) < 7) return formatter.format(days, 'day')
   return new Intl.DateTimeFormat('ja-JP', { month: 'short', day: 'numeric' }).format(timestamp)
-}
-
-function linkedText(text: string, links: TweetLink[], tweetId: string): ComponentChildren[] {
-  const detailHref = routeHref({ name: 'tweet', tweetId })
-  if (links.length === 0) return [<a class="relative z-20" href={detailHref}>{text}</a>]
-  const linkMap = new Map(links.map((link) => [link.url, link]))
-  const pattern = new RegExp(`(${links.map((link) => link.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g')
-  return text.split(pattern).map((part) => {
-    const link = linkMap.get(part)
-    if (!link) return <a class="relative z-20" href={detailHref}>{part}</a>
-    return (
-      <a class="relative z-20 text-accent hover:underline" href={link.expandedUrl} target="_blank" rel="noreferrer">
-        {link.displayUrl}
-      </a>
-    )
-  })
 }
 
 function MediaGrid({ tweet }: { tweet: Tweet }): JSX.Element | null {
@@ -75,20 +60,18 @@ function MediaGrid({ tweet }: { tweet: Tweet }): JSX.Element | null {
 
 function QuoteCard({ tweet }: { tweet: Tweet }): JSX.Element {
   return (
-    <a
-      class="relative z-20 mt-3 block rounded-2xl border border-line p-3 transition-colors hover:bg-hover"
-      href={routeHref({ name: 'tweet', tweetId: tweet.id })}
-    >
+    <div class="relative z-20 mt-3 rounded-2xl border border-line p-3 transition-colors hover:bg-hover">
+      <a class="absolute inset-0 z-10 rounded-2xl" href={routeHref({ name: 'tweet', tweetId: tweet.id })} aria-label={`${tweet.author.name}の引用投稿を表示`} />
       <div class="flex min-w-0 items-center gap-2 text-sm">
         {tweet.author.avatarUrl ? <img src={tweet.author.avatarUrl} width="20" height="20" class="size-5 rounded-full" alt="" /> : null}
         <span class="truncate font-bold">{tweet.author.name}</span>
         <span class="truncate text-muted">@{tweet.author.handle}</span>
       </div>
-      <p class="mt-1 whitespace-pre-wrap break-words text-[15px] leading-5">{tweet.text}</p>
+      <p class="mt-1 whitespace-pre-wrap break-words text-[15px] leading-5"><TweetText text={tweet.text} links={tweet.links} /></p>
       {tweet.media[0] ? (
         <img class="mt-2 max-h-48 w-full rounded-xl object-cover" src={`${tweet.media[0].previewUrl}?name=small`} alt="引用投稿の画像" width={tweet.media[0].width ?? 600} height={tweet.media[0].height ?? 338} loading="lazy" />
       ) : null}
-    </a>
+    </div>
   )
 }
 
@@ -121,8 +104,8 @@ export function TweetCard({ tweet, detail = false }: { tweet: Tweet; detail?: bo
               <time dateTime={tweet.createdAt}>{relativeTime(tweet.createdAt)}</time>
             </a>
           </div>
-          <p class={`relative z-20 mt-0.5 whitespace-pre-wrap break-words leading-5.5 ${detail ? 'text-[17px]' : 'text-[15px]'}`}>
-            {linkedText(tweet.text, tweet.links, tweet.id)}
+          <p class={`mt-0.5 whitespace-pre-wrap break-words leading-5.5 ${detail ? 'text-[17px]' : 'text-[15px]'}`}>
+            <TweetText text={tweet.text} links={tweet.links} />
           </p>
           <MediaGrid tweet={tweet} />
           {tweet.quotedTweet ? <QuoteCard tweet={tweet.quotedTweet} /> : null}

@@ -6,6 +6,16 @@ import { TweetCard } from '../components/TweetCard'
 import { navigate } from '../router'
 import type { ConversationPage, RelaySettings, Tweet } from '../types'
 
+export function nextReplyCursor(
+  requestedCursor: string,
+  responseCursor: string | undefined,
+  freshReplyCount: number,
+  requestedCursors: ReadonlySet<string>
+): string | undefined {
+  if (freshReplyCount === 0 || !responseCursor || responseCursor === requestedCursor || requestedCursors.has(responseCursor)) return undefined
+  return responseCursor
+}
+
 export function TweetScreen({ settings, tweetId, media, onSettings }: { settings: RelaySettings; tweetId: string; media?: number; onSettings: () => void }) {
   const [conversation, setConversation] = useState<ConversationPage>()
   const [replies, setReplies] = useState<Tweet[]>([])
@@ -13,15 +23,26 @@ export function TweetScreen({ settings, tweetId, media, onSettings }: { settings
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string>()
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const loadingMoreRef = useRef(false)
+  const requestedCursorsRef = useRef(new Set<string>())
+  const replyIdsRef = useRef(new Set<string>())
+  const pageControllerRef = useRef<AbortController>()
 
   const loadInitial = useCallback(() => {
     const controller = new AbortController()
     setConversation(undefined)
     setReplies([])
+    setCursor(undefined)
+    setLoadingMore(false)
     setError(undefined)
+    loadingMoreRef.current = false
+    requestedCursorsRef.current.clear()
+    replyIdsRef.current.clear()
+    pageControllerRef.current?.abort()
     fetchConversation(settings, tweetId, undefined, controller.signal).then((page) => {
       setConversation(page)
       setReplies(page.replies)
+      replyIdsRef.current = new Set(page.replies.map((tweet) => tweet.id))
       setCursor(page.nextCursor)
     }, (reason: unknown) => {
       if (reason instanceof DOMException && reason.name === 'AbortError') return
@@ -32,26 +53,39 @@ export function TweetScreen({ settings, tweetId, media, onSettings }: { settings
 
   useEffect(() => {
     const controller = loadInitial()
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      pageControllerRef.current?.abort()
+    }
   }, [loadInitial])
 
   const loadMore = useCallback(() => {
-    if (!cursor || loadingMore) return
+    if (!cursor || loadingMoreRef.current || requestedCursorsRef.current.has(cursor)) return
+    requestedCursorsRef.current.add(cursor)
+    loadingMoreRef.current = true
     setLoadingMore(true)
     setError(undefined)
-    fetchConversation(settings, tweetId, cursor).then((page) => {
+    const controller = new AbortController()
+    pageControllerRef.current = controller
+    fetchConversation(settings, tweetId, cursor, controller.signal).then((page) => {
+      const freshReplies = page.replies.filter((tweet) => !replyIdsRef.current.has(tweet.id))
+      for (const tweet of freshReplies) replyIdsRef.current.add(tweet.id)
       setReplies((current) => {
         const byId = new Map(current.map((tweet) => [tweet.id, tweet]))
-        for (const tweet of page.replies) byId.set(tweet.id, tweet)
+        for (const tweet of freshReplies) byId.set(tweet.id, tweet)
         return [...byId.values()]
       })
-      setCursor(page.nextCursor === cursor ? undefined : page.nextCursor)
+      setCursor(nextReplyCursor(cursor, page.nextCursor, freshReplies.length, requestedCursorsRef.current))
+      loadingMoreRef.current = false
       setLoadingMore(false)
     }, (reason: unknown) => {
+      if (reason instanceof DOMException && reason.name === 'AbortError') return
       setError(reason instanceof Error ? reason.message : '返信の追加読み込みに失敗しました。')
+      requestedCursorsRef.current.delete(cursor)
+      loadingMoreRef.current = false
       setLoadingMore(false)
     })
-  }, [cursor, loadingMore, settings, tweetId])
+  }, [cursor, settings, tweetId])
 
   useEffect(() => {
     if (!cursor || !sentinelRef.current) return

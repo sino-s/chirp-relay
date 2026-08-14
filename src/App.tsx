@@ -1,8 +1,8 @@
 import type { ComponentChildren } from 'preact'
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { BellIcon, HomeIcon, SearchIcon, UserIcon } from './components/Icons'
 import { SettingsScreen } from './components/SettingsScreen'
-import { navigate, parseHash, routeHref, type AppRoute } from './router'
+import { ensureAppHistoryEntry, markAppHistoryEntry, navigate, parseHash, routeHref, routeScrollKey, type AppRoute } from './router'
 import { HomeScreen } from './screens/HomeScreen'
 import { NotificationsScreen } from './screens/NotificationsScreen'
 import { ProfileScreen } from './screens/ProfileScreen'
@@ -16,17 +16,41 @@ export function App() {
   const [route, setRoute] = useState<AppRoute>(parseHash)
   const [profileVisited, setProfileVisited] = useState(parseHash().name === 'profile')
   const [editingSettings, setEditingSettings] = useState(false)
+  const routeRef = useRef(route)
+  const historyIndexRef = useRef(0)
+  const scrollPositionsRef = useRef(new Map<string, number>())
 
   useEffect(() => {
+    if (!window.location.hash) window.history.replaceState(window.history.state, '', '#/home')
+    historyIndexRef.current = ensureAppHistoryEntry()
+    const previousScrollRestoration = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
     const onHashChange = () => {
+      scrollPositionsRef.current.set(routeScrollKey(routeRef.current), window.scrollY)
       const next = parseHash()
+      historyIndexRef.current = markAppHistoryEntry(historyIndexRef.current)
+      routeRef.current = next
       setRoute(next)
       if (next.name === 'profile') setProfileVisited(true)
     }
     window.addEventListener('hashchange', onHashChange)
-    if (!window.location.hash) window.history.replaceState(null, '', '#/home')
-    return () => window.removeEventListener('hashchange', onHashChange)
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration
+      window.removeEventListener('hashchange', onHashChange)
+    }
   }, [])
+
+  useLayoutEffect(() => {
+    const top = scrollPositionsRef.current.get(routeScrollKey(route)) ?? 0
+    let innerFrame = 0
+    const outerFrame = window.requestAnimationFrame(() => {
+      innerFrame = window.requestAnimationFrame(() => window.scrollTo(0, top))
+    })
+    return () => {
+      window.cancelAnimationFrame(outerFrame)
+      window.cancelAnimationFrame(innerFrame)
+    }
+  }, [route])
 
   function applySettings(next: RelaySettings) {
     saveSettings(next)

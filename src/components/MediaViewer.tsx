@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { navigate } from '../router'
-import type { Tweet } from '../types'
+import { canGoBackInApp, navigate } from '../router'
+import type { Tweet, TweetMedia } from '../types'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from './Icons'
 
 export function MediaViewer({ tweet, initialIndex }: { tweet: Tweet; initialIndex: number }) {
@@ -42,7 +42,8 @@ export function MediaViewer({ tweet, initialIndex }: { tweet: Tweet; initialInde
   }, [safeIndex])
 
   function close() {
-    navigate({ name: 'tweet', tweetId: tweet.id }, true)
+    if (canGoBackInApp()) window.history.back()
+    else navigate({ name: 'tweet', tweetId: tweet.id }, true)
   }
 
   function show(index: number) {
@@ -70,16 +71,46 @@ export function MediaViewer({ tweet, initialIndex }: { tweet: Tweet; initialInde
           <div key={media.id} class="grid min-w-full snap-center place-items-center p-2 pt-16 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             {media.type === 'photo' || !media.playbackUrl ? (
               <img class="max-h-full max-w-full object-contain" src={`${media.previewUrl}?name=orig`} width={media.width ?? 1200} height={media.height ?? 675} alt={media.altText ?? `投稿画像 ${index + 1}`} />
-            ) : (
-              <video class="max-h-full max-w-full" src={media.playbackUrl} poster={`${media.previewUrl}?name=large`} controls playsInline autoPlay loop={media.type === 'animated_gif'} muted={media.type === 'animated_gif'}>
-                動画を再生できません。
-              </video>
-            )}
+            ) : <VideoPlayer media={media} />}
           </div>
         ))}
       </div>
       {activeIndex > 0 ? <button class="media-arrow left-3" type="button" onClick={() => show(activeIndex - 1)} aria-label="前の画像"><ChevronLeftIcon size={28} /></button> : null}
       {activeIndex + 1 < tweet.media.length ? <button class="media-arrow right-3" type="button" onClick={() => show(activeIndex + 1)} aria-label="次の画像"><ChevronRightIcon size={28} /></button> : null}
     </div>
+  )
+}
+
+function VideoPlayer({ media }: { media: TweetMedia }) {
+  const sources = media.playbackUrls?.length ? media.playbackUrls : media.playbackUrl ? [media.playbackUrl] : []
+  const [sourceIndex, setSourceIndex] = useState(0)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    setSourceIndex(0)
+    setFailed(false)
+  }, [media.id])
+
+  if (failed || !sources[sourceIndex]) {
+    return <div class="max-w-sm rounded-2xl bg-white/10 px-6 py-5 text-center text-sm">動画を再生できませんでした。</div>
+  }
+  return (
+    <video
+      key={sources[sourceIndex]}
+      class="max-h-full max-w-full"
+      src={sources[sourceIndex]}
+      poster={`${media.previewUrl}?name=large`}
+      controls
+      playsInline
+      autoPlay
+      loop={media.type === 'animated_gif'}
+      muted={media.type === 'animated_gif'}
+      onError={() => {
+        if (sourceIndex + 1 < sources.length) setSourceIndex((index) => index + 1)
+        else setFailed(true)
+      }}
+    >
+      動画を再生できません。
+    </video>
   )
 }

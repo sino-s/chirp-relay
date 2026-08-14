@@ -116,8 +116,8 @@ function parseAuthor(result: JsonObject): TweetAuthor | undefined {
   return user ? parseUserAuthor(user) : undefined
 }
 
-function parseLinks(legacy: JsonObject): TweetLink[] {
-  const raw = objectAt(legacy, 'entities')?.urls
+function parseLinks(source: JsonObject): TweetLink[] {
+  const raw = (objectAt(source, 'entity_set') ?? objectAt(source, 'entities'))?.urls
   if (!Array.isArray(raw)) return []
   return raw.flatMap((item) => {
     if (!isObject(item) || typeof item.url !== 'string') return []
@@ -138,22 +138,21 @@ function parseMedia(legacy: JsonObject): TweetMedia[] {
     if (type !== 'photo' && type !== 'video' && type !== 'animated_gif') return []
     const variants = objectAt(item, 'video_info')?.variants
     let playbackUrl: string | undefined
+    let playbackUrls: string[] | undefined
     if (Array.isArray(variants)) {
-      let bestBitrate = -1
-      for (const variant of variants) {
-        if (!isObject(variant) || variant.content_type !== 'video/mp4' || typeof variant.url !== 'string') continue
-        const bitrate = typeof variant.bitrate === 'number' ? variant.bitrate : 0
-        if (bitrate > bestBitrate) {
-          bestBitrate = bitrate
-          playbackUrl = variant.url
-        }
-      }
+      const mp4Variants = variants.flatMap((variant) => {
+        if (!isObject(variant) || variant.content_type !== 'video/mp4' || typeof variant.url !== 'string') return []
+        return [{ url: variant.url, bitrate: typeof variant.bitrate === 'number' ? variant.bitrate : 0 }]
+      }).sort((left, right) => right.bitrate - left.bitrate)
+      playbackUrls = [...new Set(mp4Variants.map((variant) => variant.url))]
+      playbackUrl = playbackUrls[0]
     }
     return [{
       id: item.id_str,
       type,
       previewUrl: item.media_url_https,
       playbackUrl,
+      playbackUrls,
       width: numberAt(item, 'original_info', 'width') || undefined,
       height: numberAt(item, 'original_info', 'height') || undefined,
       altText: typeof item.ext_alt_text === 'string' ? item.ext_alt_text : undefined
@@ -187,9 +186,11 @@ export function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefin
   const id = stringAt(source, 'rest_id')
   if (!legacy || !author || !id) return undefined
 
-  const links = parseLinks(legacy)
   const media = parseMedia(legacy)
-  const noteText = stringAt(source, 'note_tweet', 'note_tweet_results', 'result', 'text')
+  const noteResult = objectAt(source, 'note_tweet', 'note_tweet_results', 'result')
+  const noteText = stringAt(noteResult, 'text')
+  const noteLinks = noteResult ? parseLinks(noteResult) : []
+  const links = noteLinks.length > 0 ? noteLinks : parseLinks(legacy)
   const rawText = noteText ?? stringAt(legacy, 'full_text') ?? ''
   const quotedResult = objectAt(source, 'quoted_status_result', 'result')
   const quotedSource = quotedResult ? findTweetResult(quotedResult) : undefined

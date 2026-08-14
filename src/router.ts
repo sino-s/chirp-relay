@@ -21,8 +21,13 @@ export function parseHash(hash = window.location.hash): AppRoute {
   if (segments[0] === 'profile') return { name: 'profile' }
   if (segments[0] === 'user' && segments[1]) return { name: 'user', handle: segments[1] }
   if (segments[0] === 'tweet' && segments[1]) {
-    const mediaValue = Number(params.get('media'))
-    return { name: 'tweet', tweetId: segments[1], media: Number.isInteger(mediaValue) && mediaValue >= 0 ? mediaValue : undefined }
+    const rawMedia = params.get('media')
+    const mediaValue = rawMedia === null || rawMedia === '' ? undefined : Number(rawMedia)
+    return {
+      name: 'tweet',
+      tweetId: segments[1],
+      media: mediaValue !== undefined && Number.isInteger(mediaValue) && mediaValue >= 0 ? mediaValue : undefined
+    }
   }
   if (segments[0] === 'notifications') {
     return { name: 'notifications', tab: params.get('tab') === 'mentions' ? 'mentions' : 'all' }
@@ -56,4 +61,34 @@ export function navigate(route: AppRoute, replace = false): void {
   const href = routeHref(route)
   if (replace) window.location.replace(href)
   else window.location.hash = href.slice(1)
+}
+
+const HISTORY_INDEX_KEY = 'chirpHistoryIndex'
+
+export function ensureAppHistoryEntry(): number {
+  const stored = window.history.state?.[HISTORY_INDEX_KEY]
+  if (typeof stored === 'number' && Number.isInteger(stored) && stored >= 0) return stored
+  window.history.replaceState({ ...window.history.state, [HISTORY_INDEX_KEY]: 0 }, '', window.location.href)
+  return 0
+}
+
+export function markAppHistoryEntry(previousIndex: number): number {
+  const stored = window.history.state?.[HISTORY_INDEX_KEY]
+  if (typeof stored === 'number' && Number.isInteger(stored) && stored >= 0) return stored
+  const nextIndex = previousIndex + 1
+  window.history.replaceState({ ...window.history.state, [HISTORY_INDEX_KEY]: nextIndex }, '', window.location.href)
+  return nextIndex
+}
+
+export function canGoBackInApp(): boolean {
+  const stored = window.history.state?.[HISTORY_INDEX_KEY]
+  return typeof stored === 'number' && stored > 0
+}
+
+export function routeScrollKey(route: AppRoute): string {
+  if (route.name === 'tweet') return `tweet:${route.tweetId}`
+  if (route.name === 'user') return `user:${route.handle}`
+  if (route.name === 'notifications') return `notifications:${route.tab}`
+  if (route.name === 'search') return `search:${route.product}:${route.query}`
+  return route.name
 }

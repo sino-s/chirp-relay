@@ -123,6 +123,13 @@ h1, h2, h3 { text-wrap: balance; scroll-margin-top: 5rem; }
   contain-intrinsic-size: auto 280px;
 }
 
+.tweet-entity-link {
+  color: #1d9bf0;
+  font-weight: 500;
+  text-underline-offset: 2px;
+}
+.tweet-entity-link:hover { text-decoration: underline; }
+
 .media-arrow {
   position: fixed;
   top: 50%;
