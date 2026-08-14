@@ -18,6 +18,7 @@ export function App() {
   const [settings, setSettings] = useState<RelaySettings | undefined>(() => loadSettings())
   const [route, setRoute] = useState<AppRoute>(parseHash)
   const [profileVisited, setProfileVisited] = useState(parseHash().name === 'profile')
+  const [notificationsVisited, setNotificationsVisited] = useState(parseHash().name === 'notifications')
   const [editingSettings, setEditingSettings] = useState(false)
   const [accounts, setAccounts] = useState<RelayAccount[]>([])
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -43,6 +44,7 @@ export function App() {
       routeRef.current = next
       setRoute(next)
       if (next.name === 'profile') setProfileVisited(true)
+      if (next.name === 'notifications') setNotificationsVisited(true)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => {
@@ -172,6 +174,7 @@ export function App() {
   if (editingSettings) return <SettingsScreen initial={settings} onSave={applySettings} onCancel={() => setEditingSettings(false)} />
 
   const currentAccount = accounts.find((account) => account.profileName === settings.profileName)
+  const notificationTab = route.name === 'notifications' ? route.tab : 'all'
 
   return (
     <RelaySettingsContext.Provider value={settings}>
@@ -185,7 +188,7 @@ export function App() {
             {profileVisited ? <div hidden={route.name !== 'profile'}><ProfileScreen settings={settings} refreshToken={refreshToken} /></div> : null}
             {route.name === 'user' ? <ProfileScreen key={`${route.handle}:${refreshToken}`} settings={settings} userHandle={route.handle} onBack={() => goBack()} /> : null}
             {route.name === 'tweet' ? <TweetScreen key={`${route.tweetId}:${refreshToken}`} settings={settings} tweetId={route.tweetId} media={route.media} /> : null}
-            {route.name === 'notifications' ? <NotificationsScreen settings={settings} tab={route.tab} refreshToken={refreshToken} /> : null}
+            {notificationsVisited ? <div hidden={route.name !== 'notifications'}><NotificationsScreen settings={settings} tab={notificationTab} refreshToken={refreshToken} /></div> : null}
             {route.name === 'search' ? <SearchScreen key={`${route.query}:${route.product}:${refreshToken}`} settings={settings} query={route.query} product={route.product} /> : null}
           </main>
         </PullToRefresh>

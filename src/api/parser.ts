@@ -327,11 +327,11 @@ export function parseTimeline(value: unknown): TimelinePage {
   const byId = new Map<string, Tweet>()
   for (const entry of findEntries(value)) {
     const entryId = String(entry.entryId)
-    if (entryId.startsWith('promoted-') || !entryId.startsWith('tweet-')) continue
-    const result = findTweetResult(entry)
-    if (!result) continue
-    const tweet = parseTweetResult(result)
-    if (tweet && !byId.has(tweet.id)) byId.set(tweet.id, tweet)
+    if (entryId.startsWith('promoted-') || (!entryId.startsWith('tweet-') && !entryId.startsWith('profile-grid-'))) continue
+    for (const result of collectTweetResults(entry)) {
+      const tweet = parseTweetResult(result)
+      if (tweet && !byId.has(tweet.id)) byId.set(tweet.id, tweet)
+    }
   }
   return { tweets: [...byId.values()], nextCursor: findBottomCursor(value) }
 }

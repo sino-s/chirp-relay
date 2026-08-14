@@ -1,0 +1,36 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/preact'
+import { describe, expect, it, vi } from 'vitest'
+import { fetchUserLikes, fetchUserMedia, fetchUserTweets, fetchViewer } from '../api/client'
+import { ProfileScreen } from './ProfileScreen'
+
+vi.mock('../api/client', () => ({
+  fetchUserLikes: vi.fn(),
+  fetchUserMedia: vi.fn(),
+  fetchUserProfile: vi.fn(),
+  fetchUserTweets: vi.fn(),
+  fetchViewer: vi.fn()
+}))
+
+const settings = { baseUrl: 'http://relay.example', profileName: 'one' }
+const profile = { id: 'user-1', name: 'User', handle: 'user', description: '', avatarUrl: '', followers: 0, following: 0, posts: 0 }
+
+describe('ProfileScreen', () => {
+  it('loads media and likes lazily and keeps all profile tabs mounted', async () => {
+    vi.mocked(fetchViewer).mockResolvedValue(profile)
+    vi.mocked(fetchUserTweets).mockResolvedValue({ tweets: [] })
+    vi.mocked(fetchUserMedia).mockResolvedValue({ tweets: [] })
+    vi.mocked(fetchUserLikes).mockResolvedValue({ tweets: [] })
+    render(<ProfileScreen settings={settings} />)
+    await waitFor(() => expect(fetchUserTweets).toHaveBeenCalledOnce())
+
+    fireEvent.click(screen.getByRole('tab', { name: 'メディア' }))
+    await waitFor(() => expect(fetchUserMedia).toHaveBeenCalledOnce())
+    fireEvent.click(screen.getByRole('tab', { name: 'いいね' }))
+    await waitFor(() => expect(fetchUserLikes).toHaveBeenCalledOnce())
+    fireEvent.click(screen.getByRole('tab', { name: '投稿' }))
+
+    expect(fetchUserTweets).toHaveBeenCalledOnce()
+    expect(fetchUserMedia).toHaveBeenCalledOnce()
+    expect(fetchUserLikes).toHaveBeenCalledOnce()
+  })
+})

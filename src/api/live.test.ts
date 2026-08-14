@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchConversation, fetchNotifications, fetchTimeline, fetchUserProfile, fetchUserTweets, fetchViewer, probeRelay, searchTwitter } from './client'
+import { fetchConversation, fetchNotifications, fetchTimeline, fetchUserLikes, fetchUserMedia, fetchUserProfile, fetchUserTweets, fetchViewer, probeRelay, searchTwitter } from './client'
 
 const runLive = import.meta.env.VITE_RELAY_INTEGRATION === '1'
 const baseUrl = import.meta.env.VITE_RELAY_BASE_URL ?? 'http://localhost:4545'
@@ -14,14 +14,18 @@ describe.runIf(runLive)('live relay integration', () => {
     expect(viewer.id).not.toBe('')
     expect(viewer.handle).not.toBe('')
 
-    const [forYou, following, ownPosts] = await Promise.all([
+    const [forYou, following, ownPosts, ownMedia, ownLikes] = await Promise.all([
       fetchTimeline(settings, 'for-you'),
       fetchTimeline(settings, 'following'),
-      fetchUserTweets(settings, viewer.id)
+      fetchUserTweets(settings, viewer.id),
+      fetchUserMedia(settings, viewer.id),
+      fetchUserLikes(settings, viewer.id)
     ])
     expect(forYou.tweets.length).toBeGreaterThan(0)
     expect(following.tweets.length).toBeGreaterThan(0)
     expect(ownPosts.tweets.length).toBeGreaterThan(0)
+    expect(ownMedia.tweets.length).toBeGreaterThan(0)
+    expect(ownLikes.tweets).toEqual(expect.any(Array))
     expect(forYou.nextCursor).toBeTruthy()
     expect(following.nextCursor).toBeTruthy()
     expect(ownPosts.nextCursor).toBeTruthy()

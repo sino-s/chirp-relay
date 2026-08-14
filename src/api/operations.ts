@@ -122,6 +122,16 @@ export const OPERATIONS = {
     features: TIMELINE_FEATURES,
     fieldToggles: { withArticlePlainText: false }
   },
+  userMedia: {
+    path: '/graphql/g_rGPF0fLON-M9cyVjXuzA/UserMedia',
+    features: TIMELINE_FEATURES,
+    fieldToggles: { withArticlePlainText: false }
+  },
+  likes: {
+    path: '/graphql/-a4kQTjMROm_V1cOpbNyXQ/Likes',
+    features: TIMELINE_FEATURES,
+    fieldToggles: { withArticlePlainText: false }
+  },
   viewer: {
     path: '/graphql/_8ClT24oZ8tpylf_OSuNdg/Viewer',
     features: VIEWER_FEATURES,

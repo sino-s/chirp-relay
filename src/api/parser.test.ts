@@ -146,6 +146,18 @@ describe('parseTimeline', () => {
       imageHeight: 630
     })
   })
+
+  it('extracts posts nested in a profile media grid', () => {
+    const page = parseTimeline({ entries: [{
+      entryId: 'profile-grid-0',
+      content: { items: [
+        { entryId: 'profile-grid-0-tweet-21', item: { tweet_results: { result: tweet('21', 'first photo') } } },
+        { entryId: 'profile-grid-0-tweet-22', item: { tweet_results: { result: tweet('22', 'second photo') } } }
+      ] }
+    }] })
+
+    expect(page.tweets).toMatchObject([{ id: '21' }, { id: '22' }])
+  })
 })
 
 describe('parseViewer', () => {

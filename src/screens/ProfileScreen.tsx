@@ -1,14 +1,25 @@
 import { useCallback, useEffect, useState } from 'preact/hooks'
-import { fetchUserProfile, fetchUserTweets, fetchViewer } from '../api/client'
+import { fetchUserLikes, fetchUserMedia, fetchUserProfile, fetchUserTweets, fetchViewer } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
 import { CalendarIcon, LockIcon, WarningIcon } from '../components/Icons'
 import { TimelineFeed } from '../components/TimelineFeed'
 import type { RelaySettings, ViewerProfile } from '../types'
 
+type ProfileTab = 'posts' | 'media' | 'likes'
+
 export function ProfileScreen({ settings, userHandle, onBack, refreshToken: externalRefreshToken = 0 }: { settings: RelaySettings; userHandle?: string; onBack?: () => void; refreshToken?: number }) {
   const [profile, setProfile] = useState<ViewerProfile>()
   const [error, setError] = useState<string>()
   const [retryToken, setRetryToken] = useState(0)
+  const [activeTab, setActiveTab] = useState<ProfileTab>('posts')
+  const [visitedMedia, setVisitedMedia] = useState(false)
+  const [visitedLikes, setVisitedLikes] = useState(false)
+
+  useEffect(() => {
+    setActiveTab('posts')
+    setVisitedMedia(false)
+    setVisitedLikes(false)
+  }, [settings.baseUrl, settings.profileName, userHandle])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -27,6 +38,22 @@ export function ProfileScreen({ settings, userHandle, onBack, refreshToken: exte
     return fetchUserTweets(settings, profile.id, cursor, signal)
   }, [profile, settings])
 
+  const loadMedia = useCallback((cursor?: string, signal?: AbortSignal) => {
+    if (!profile) return Promise.resolve({ tweets: [] })
+    return fetchUserMedia(settings, profile.id, cursor, signal)
+  }, [profile, settings])
+
+  const loadLikes = useCallback((cursor?: string, signal?: AbortSignal) => {
+    if (!profile) return Promise.resolve({ tweets: [] })
+    return fetchUserLikes(settings, profile.id, cursor, signal)
+  }, [profile, settings])
+
+  function changeTab(tab: ProfileTab) {
+    setActiveTab(tab)
+    if (tab === 'media') setVisitedMedia(true)
+    if (tab === 'likes') setVisitedLikes(true)
+  }
+
   function refresh() {
     setProfile(undefined)
     setRetryToken((value) => value + 1)
@@ -44,12 +71,22 @@ export function ProfileScreen({ settings, userHandle, onBack, refreshToken: exte
       ) : profile ? (
         <>
           <ProfileHeader profile={profile} />
-          <div class="border-b border-line px-4 pt-4"><h2 class="inline-block border-b-4 border-accent px-2 pb-3 text-sm font-bold">投稿</h2></div>
-          <TimelineFeed loadPage={loadTweets} refreshToken={externalRefreshToken + retryToken} emptyMessage="まだ投稿がありません。" />
+          <div class="grid grid-cols-3 border-b border-line" role="tablist" aria-label="プロフィールの投稿種類">
+            <ProfileTabButton active={activeTab === 'posts'} onClick={() => changeTab('posts')}>投稿</ProfileTabButton>
+            <ProfileTabButton active={activeTab === 'media'} onClick={() => changeTab('media')}>メディア</ProfileTabButton>
+            <ProfileTabButton active={activeTab === 'likes'} onClick={() => changeTab('likes')}>いいね</ProfileTabButton>
+          </div>
+          <div role="tabpanel" hidden={activeTab !== 'posts'}><TimelineFeed loadPage={loadTweets} refreshToken={externalRefreshToken + retryToken} emptyMessage="まだ投稿がありません。" /></div>
+          {visitedMedia ? <div role="tabpanel" hidden={activeTab !== 'media'}><TimelineFeed loadPage={loadMedia} refreshToken={externalRefreshToken + retryToken} emptyMessage="メディア付きの投稿はありません。" /></div> : null}
+          {visitedLikes ? <div role="tabpanel" hidden={activeTab !== 'likes'}><TimelineFeed loadPage={loadLikes} refreshToken={externalRefreshToken + retryToken} emptyMessage="いいねした投稿はありません。" /></div> : null}
         </>
       ) : <ProfileSkeleton />}
     </section>
   )
+}
+
+function ProfileTabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
+  return <button class={`relative h-12 text-sm font-bold transition-colors hover:bg-hover ${active ? 'text-primary' : 'text-muted'}`} type="button" role="tab" aria-selected={active} onClick={onClick}>{children}{active ? <span class="absolute inset-x-1/4 bottom-0 h-1 rounded-full bg-accent" /> : null}</button>
 }
 
 function ProfileHeader({ profile }: { profile: ViewerProfile }) {

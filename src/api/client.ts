@@ -137,6 +137,34 @@ export async function fetchUserTweets(
   return parseTimeline(value)
 }
 
+async function fetchUserCollection(
+  settings: RelaySettings,
+  operation: typeof OPERATIONS.userMedia | typeof OPERATIONS.likes,
+  userId: string,
+  cursor?: string,
+  signal?: AbortSignal
+): Promise<TimelinePage> {
+  const variables: Record<string, unknown> = {
+    userId,
+    count: 20,
+    includePromotedContent: false,
+    withClientEventToken: false,
+    withBirdwatchNotes: false,
+    withVoice: true
+  }
+  if (cursor) variables.cursor = cursor
+  const value = await graphqlGet(settings, operation, variables, signal)
+  return parseTimeline(value)
+}
+
+export function fetchUserMedia(settings: RelaySettings, userId: string, cursor?: string, signal?: AbortSignal): Promise<TimelinePage> {
+  return fetchUserCollection(settings, OPERATIONS.userMedia, userId, cursor, signal)
+}
+
+export function fetchUserLikes(settings: RelaySettings, userId: string, cursor?: string, signal?: AbortSignal): Promise<TimelinePage> {
+  return fetchUserCollection(settings, OPERATIONS.likes, userId, cursor, signal)
+}
+
 export async function fetchUserProfile(settings: RelaySettings, handle: string, signal?: AbortSignal): Promise<ViewerProfile> {
   const value = await graphqlGet(
     settings,

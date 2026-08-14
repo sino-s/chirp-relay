@@ -6,6 +6,27 @@ import { routeHref } from '../router'
 import type { NotificationItem, RelaySettings } from '../types'
 
 export function NotificationsScreen({ settings, tab, refreshToken = 0 }: { settings: RelaySettings; tab: 'all' | 'mentions'; refreshToken?: number }) {
+  const [visitedMentions, setVisitedMentions] = useState(tab === 'mentions')
+
+  useEffect(() => {
+    if (tab === 'mentions') setVisitedMentions(true)
+  }, [tab])
+
+  return (
+    <section>
+      <AppHeader title="通知">
+        <div class="grid grid-cols-2" role="tablist" aria-label="通知の種類">
+          <NotificationTab active={tab === 'all'} href={routeHref({ name: 'notifications', tab: 'all' })}>すべて</NotificationTab>
+          <NotificationTab active={tab === 'mentions'} href={routeHref({ name: 'notifications', tab: 'mentions' })}>メンション</NotificationTab>
+        </div>
+      </AppHeader>
+      <div role="tabpanel" hidden={tab !== 'all'}><NotificationFeed settings={settings} tab="all" refreshToken={refreshToken} /></div>
+      {visitedMentions ? <div role="tabpanel" hidden={tab !== 'mentions'}><NotificationFeed settings={settings} tab="mentions" refreshToken={refreshToken} /></div> : null}
+    </section>
+  )
+}
+
+function NotificationFeed({ settings, tab, refreshToken }: { settings: RelaySettings; tab: 'all' | 'mentions'; refreshToken: number }) {
   const [items, setItems] = useState<NotificationItem[]>([])
   const [cursor, setCursor] = useState<string>()
   const [loading, setLoading] = useState(true)
@@ -57,19 +78,13 @@ export function NotificationsScreen({ settings, tab, refreshToken = 0 }: { setti
   }, [cursor, loadMore])
 
   return (
-    <section>
-      <AppHeader title="通知">
-        <div class="grid grid-cols-2" role="tablist" aria-label="通知の種類">
-          <NotificationTab active={tab === 'all'} href={routeHref({ name: 'notifications', tab: 'all' })}>すべて</NotificationTab>
-          <NotificationTab active={tab === 'mentions'} href={routeHref({ name: 'notifications', tab: 'mentions' })}>メンション</NotificationTab>
-        </div>
-      </AppHeader>
+    <>
       {loading ? <NotificationSkeleton /> : null}
       {!loading && items.length === 0 && !error ? <p class="px-6 py-16 text-center text-sm text-muted">通知はありません。</p> : null}
       {items.map((item) => <NotificationCard key={item.id} item={item} />)}
       {error ? <div class="px-6 py-6 text-center" role="alert"><p class="text-sm text-muted">{error}</p><button class="secondary-button mt-3" type="button" onClick={items.length ? loadMore : () => setRefresh((value) => value + 1)}>再試行</button></div> : null}
       <div ref={sentinelRef} class="grid h-20 place-items-center" aria-live="polite">{loadingMore ? <span class="size-6 animate-spin rounded-full border-2 border-line border-t-accent" aria-label="通知を読み込み中" /> : null}</div>
-    </section>
+    </>
   )
 }
 

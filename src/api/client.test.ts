@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createTweet, setTweetLiked, setTweetRetweeted } from './client'
+import { createTweet, fetchUserLikes, fetchUserMedia, setTweetLiked, setTweetRetweeted } from './client'
 
 const settings = { baseUrl: 'http://relay.example', profileName: 'account-one' }
 
@@ -48,6 +48,21 @@ describe('relay write operations', () => {
       { tweet_id: 'tweet-1' },
       { tweet_id: 'tweet-1' },
       { source_tweet_id: 'tweet-1' }
+    ])
+  })
+
+  it('uses separate profile collections for media and likes', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response({ entries: [] })))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await fetchUserMedia(settings, 'user-1')
+    await fetchUserLikes(settings, 'user-1', 'next')
+
+    const urls = fetchMock.mock.calls.map(([url]) => new URL(String(url)))
+    expect(urls.map((url) => url.pathname.split('/').at(-1))).toEqual(['UserMedia', 'Likes'])
+    expect(urls.map((url) => JSON.parse(String(url.searchParams.get('variables'))))).toEqual([
+      { userId: 'user-1', count: 20, includePromotedContent: false, withClientEventToken: false, withBirdwatchNotes: false, withVoice: true },
+      { userId: 'user-1', count: 20, includePromotedContent: false, withClientEventToken: false, withBirdwatchNotes: false, withVoice: true, cursor: 'next' }
     ])
   })
 })
