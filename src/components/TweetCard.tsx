@@ -1,11 +1,11 @@
 import type { JSX } from 'preact'
 import { useContext, useEffect, useState } from 'preact/hooks'
-import { fetchConversation, setTweetLiked, setTweetRetweeted } from '../api/client'
+import { fetchConversation, setTweetBookmarked, setTweetLiked, setTweetRetweeted } from '../api/client'
 import { RelaySettingsContext } from '../relay-context'
 import { routeHref } from '../router'
 import type { Tweet } from '../types'
 import { twitterImageUrl } from '../media'
-import { HeartIcon, LockIcon, PlayIcon, ReplyIcon, RepostIcon, ViewsIcon } from './Icons'
+import { BookmarkIcon, HeartIcon, LockIcon, PlayIcon, ReplyIcon, RepostIcon, ViewsIcon } from './Icons'
 import { TweetText } from './TweetText'
 
 function compactNumber(value: number): string {
@@ -99,17 +99,19 @@ function TweetMetrics({ tweet }: { tweet: Tweet }): JSX.Element {
   const settings = useContext(RelaySettingsContext)
   const [liked, setLiked] = useState(tweet.liked)
   const [retweeted, setRetweeted] = useState(tweet.retweeted)
+  const [bookmarked, setBookmarked] = useState(tweet.bookmarked)
   const [likes, setLikes] = useState(tweet.metrics.likes)
   const [reposts, setReposts] = useState(tweet.metrics.reposts)
-  const [pending, setPending] = useState<'like' | 'retweet'>()
+  const [pending, setPending] = useState<'like' | 'retweet' | 'bookmark'>()
   const [error, setError] = useState<string>()
 
   useEffect(() => {
     setLiked(tweet.liked)
     setRetweeted(tweet.retweeted)
+    setBookmarked(tweet.bookmarked)
     setLikes(tweet.metrics.likes)
     setReposts(tweet.metrics.reposts)
-  }, [tweet.id, tweet.liked, tweet.metrics.likes, tweet.metrics.reposts, tweet.retweeted])
+  }, [tweet.bookmarked, tweet.id, tweet.liked, tweet.metrics.likes, tweet.metrics.reposts, tweet.retweeted])
 
   async function toggleLike() {
     if (!settings || pending) return
@@ -169,6 +171,30 @@ function TweetMetrics({ tweet }: { tweet: Tweet }): JSX.Element {
     }
   }
 
+  async function toggleBookmark() {
+    if (!settings || pending) return
+    const next = !bookmarked
+    setPending('bookmark')
+    setError(undefined)
+    setBookmarked(next)
+    try {
+      await setTweetBookmarked(settings, tweet.id, next)
+    } catch (reason) {
+      setBookmarked(!next)
+      setError(reason instanceof Error ? reason.message : 'ブックマークを更新できませんでした。')
+      setPending(undefined)
+      return
+    }
+    try {
+      const verified = (await fetchConversation(settings, tweet.id)).focalTweet
+      if (verified) setBookmarked(verified.bookmarked)
+    } catch {
+      setError('更新しました。再読み込み後に状態を確認できます。')
+    } finally {
+      setPending(undefined)
+    }
+  }
+
   return (
     <>
       <div class="mt-3 flex max-w-md items-center justify-between text-muted" aria-label="投稿の反応">
@@ -176,6 +202,7 @@ function TweetMetrics({ tweet }: { tweet: Tweet }): JSX.Element {
         <button class={`metric relative z-20 hover:text-[#00ba7c] ${retweeted ? 'text-[#00ba7c]' : ''}`} type="button" onClick={toggleRetweet} disabled={!settings || pending !== undefined} aria-label={retweeted ? 'リツイートを取り消す' : 'リツイート'} aria-pressed={retweeted}><RepostIcon size={18} /><span>{compactNumber(reposts)}</span></button>
         <button class={`metric relative z-20 hover:text-danger ${liked ? 'text-danger [&_svg]:fill-current' : ''}`} type="button" onClick={toggleLike} disabled={!settings || pending !== undefined} aria-label={liked ? 'いいねを取り消す' : 'いいね'} aria-pressed={liked}><HeartIcon size={18} /><span>{compactNumber(likes)}</span></button>
         {tweet.metrics.views !== undefined ? <span class="metric"><ViewsIcon size={18} /><span>{compactNumber(tweet.metrics.views)}</span></span> : <span />}
+        <button class={`metric relative z-20 hover:text-accent ${bookmarked ? 'text-accent [&_svg]:fill-current' : ''}`} type="button" onClick={toggleBookmark} disabled={!settings || pending !== undefined} aria-label={bookmarked ? 'ブックマークを解除' : 'ブックマーク'} aria-pressed={bookmarked}><BookmarkIcon size={18} /></button>
       </div>
       {error ? <p class="relative z-20 mt-2 text-xs text-danger" role="alert">{error}</p> : null}
     </>

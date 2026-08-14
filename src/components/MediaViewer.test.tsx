@@ -14,6 +14,7 @@ const tweet: Tweet = {
   mentions: [],
   liked: false,
   retweeted: false,
+  bookmarked: false,
   url: 'https://x.com/user/status/123'
 }
 

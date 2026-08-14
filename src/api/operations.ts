@@ -140,6 +140,10 @@ export const OPERATIONS = {
     features: TIMELINE_FEATURES,
     fieldToggles: { withArticlePlainText: false }
   },
+  bookmarks: {
+    path: '/graphql/R5wixmhMi4oEBUYvBM-44g/Bookmarks',
+    features: TIMELINE_FEATURES
+  },
   viewer: {
     path: '/graphql/_8ClT24oZ8tpylf_OSuNdg/Viewer',
     features: VIEWER_FEATURES,
@@ -190,5 +194,13 @@ export const OPERATIONS = {
   deleteRetweet: {
     path: '/graphql/ZyZigVsNiFO6v1dEks1eWg/DeleteRetweet',
     queryId: 'ZyZigVsNiFO6v1dEks1eWg'
+  },
+  createBookmark: {
+    path: '/graphql/aoDbu3RHznuiSkQ9aNM67Q/CreateBookmark',
+    queryId: 'aoDbu3RHznuiSkQ9aNM67Q'
+  },
+  deleteBookmark: {
+    path: '/graphql/Wlmlj2-xzyS1GN3a6cj-mQ/DeleteBookmark',
+    queryId: 'Wlmlj2-xzyS1GN3a6cj-mQ'
   }
 } as const

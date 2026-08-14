@@ -78,6 +78,11 @@ export async function setTweetRetweeted(settings: RelaySettings, tweetId: string
   await graphqlPost(settings, operation, variables, signal)
 }
 
+export async function setTweetBookmarked(settings: RelaySettings, tweetId: string, bookmarked: boolean, signal?: AbortSignal): Promise<void> {
+  const operation = bookmarked ? OPERATIONS.createBookmark : OPERATIONS.deleteBookmark
+  await graphqlPost(settings, operation, { tweet_id: tweetId }, signal)
+}
+
 export async function probeRelay(baseUrl: string, signal?: AbortSignal): Promise<string[]> {
   const [health, profiles] = await Promise.all([
     fetch(`${baseUrl}/health`, { signal }),
@@ -131,6 +136,13 @@ export async function fetchListTimeline(settings: RelaySettings, listId: string,
   const variables: Record<string, unknown> = { listId, count: 40 }
   if (cursor) variables.cursor = cursor
   const value = await graphqlGet(settings, OPERATIONS.listTimeline, variables, signal)
+  return parseTimeline(value)
+}
+
+export async function fetchBookmarks(settings: RelaySettings, cursor?: string, signal?: AbortSignal): Promise<TimelinePage> {
+  const variables: Record<string, unknown> = { count: 20, includePromotedContent: true }
+  if (cursor) variables.cursor = cursor
+  const value = await graphqlGet(settings, OPERATIONS.bookmarks, variables, signal)
   return parseTimeline(value)
 }
 

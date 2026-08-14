@@ -110,3 +110,7 @@ export function ComposeIcon(props: IconProps): JSX.Element {
 export function ListIcon(props: IconProps): JSX.Element {
   return <Icon {...props}><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></Icon>
 }
+
+export function BookmarkIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" /></Icon>
+}

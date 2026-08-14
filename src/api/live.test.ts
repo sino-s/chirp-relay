@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchConversation, fetchListTimeline, fetchNotifications, fetchTimeline, fetchTwitterLists, fetchUserLikes, fetchUserMedia, fetchUserProfile, fetchUserTweets, fetchViewer, probeRelay, searchTwitter } from './client'
+import { fetchBookmarks, fetchConversation, fetchListTimeline, fetchNotifications, fetchTimeline, fetchTwitterLists, fetchUserLikes, fetchUserMedia, fetchUserProfile, fetchUserTweets, fetchViewer, probeRelay, searchTwitter } from './client'
 
 const runLive = import.meta.env.VITE_RELAY_INTEGRATION === '1'
 const baseUrl = import.meta.env.VITE_RELAY_BASE_URL ?? 'http://localhost:4545'
@@ -14,18 +14,21 @@ describe.runIf(runLive)('live relay integration', () => {
     expect(viewer.id).not.toBe('')
     expect(viewer.handle).not.toBe('')
 
-    const [forYou, following, ownPosts, ownMedia, ownLikes] = await Promise.all([
+    const [forYou, following, ownPosts, ownMedia, ownLikes, bookmarks] = await Promise.all([
       fetchTimeline(settings, 'for-you'),
       fetchTimeline(settings, 'following'),
       fetchUserTweets(settings, viewer.id),
       fetchUserMedia(settings, viewer.id),
-      fetchUserLikes(settings, viewer.id)
+      fetchUserLikes(settings, viewer.id),
+      fetchBookmarks(settings)
     ])
     expect(forYou.tweets.length).toBeGreaterThan(0)
     expect(following.tweets.length).toBeGreaterThan(0)
     expect(ownPosts.tweets.length).toBeGreaterThan(0)
     expect(ownMedia.tweets.length).toBeGreaterThan(0)
     expect(ownLikes.tweets).toEqual(expect.any(Array))
+    expect(bookmarks.tweets).toEqual(expect.any(Array))
+    expect(bookmarks.nextCursor).toBeTruthy()
     expect(forYou.nextCursor).toBeTruthy()
     expect(following.nextCursor).toBeTruthy()
     expect(ownPosts.nextCursor).toBeTruthy()

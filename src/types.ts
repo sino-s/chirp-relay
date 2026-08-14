@@ -80,6 +80,7 @@ export interface Tweet {
   mentions: TweetMention[]
   liked: boolean
   retweeted: boolean
+  bookmarked: boolean
   linkPreview?: TweetLinkPreview
   quotedTweet?: Tweet
   repostedBy?: string

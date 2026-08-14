@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createTweet, fetchListTimeline, fetchTwitterLists, fetchUserLikes, fetchUserMedia, setTweetLiked, setTweetRetweeted } from './client'
+import { createTweet, fetchBookmarks, fetchListTimeline, fetchTwitterLists, fetchUserLikes, fetchUserMedia, setTweetBookmarked, setTweetLiked, setTweetRetweeted } from './client'
 
 const settings = { baseUrl: 'http://relay.example', profileName: 'account-one' }
 
@@ -49,6 +49,31 @@ describe('relay write operations', () => {
       { tweet_id: 'tweet-1' },
       { source_tweet_id: 'tweet-1' }
     ])
+  })
+
+  it('uses the catalog operations to add and remove bookmarks', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(response({ data: {} })))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await setTweetBookmarked(settings, 'tweet-1', true)
+    await setTweetBookmarked(settings, 'tweet-1', false)
+
+    expect(fetchMock.mock.calls.map(([url]) => String(url).split('/').at(-1))).toEqual(['CreateBookmark', 'DeleteBookmark'])
+    expect(fetchMock.mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)))).toMatchObject([
+      { queryId: 'aoDbu3RHznuiSkQ9aNM67Q', variables: { tweet_id: 'tweet-1' } },
+      { queryId: 'Wlmlj2-xzyS1GN3a6cj-mQ', variables: { tweet_id: 'tweet-1' } }
+    ])
+  })
+
+  it('requests the bookmark timeline with pagination', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ entries: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await fetchBookmarks(settings, 'next')
+
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    expect(url.pathname.split('/').at(-1)).toBe('Bookmarks')
+    expect(JSON.parse(String(url.searchParams.get('variables')))).toEqual({ count: 20, includePromotedContent: true, cursor: 'next' })
   })
 
   it('uses separate profile collections for media and likes', async () => {

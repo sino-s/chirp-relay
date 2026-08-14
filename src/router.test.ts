@@ -31,6 +31,11 @@ describe('router', () => {
     expect(parseHash('#/lists')).toEqual({ name: 'lists' })
   })
 
+  it('round-trips the bookmarks route', () => {
+    expect(routeHref({ name: 'bookmarks' })).toBe('#/bookmarks')
+    expect(parseHash('#/bookmarks')).toEqual({ name: 'bookmarks' })
+  })
+
   it('shares scroll position between a post and its media viewer', () => {
     expect(routeScrollKey({ name: 'tweet', tweetId: '123' })).toBe('tweet:123')
     expect(routeScrollKey({ name: 'tweet', tweetId: '123', media: 2 })).toBe('tweet:123')

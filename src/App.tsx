@@ -6,6 +6,7 @@ import { PullToRefresh } from './components/PullToRefresh'
 import { SettingsScreen } from './components/SettingsScreen'
 import { ensureAppHistoryEntry, markAppHistoryEntry, navigate, parseHash, routeScrollKey, type AppRoute } from './router'
 import { HomeScreen } from './screens/HomeScreen'
+import { BookmarksScreen } from './screens/BookmarksScreen'
 import { ListsScreen } from './screens/ListsScreen'
 import { NotificationsScreen } from './screens/NotificationsScreen'
 import { ProfileScreen } from './screens/ProfileScreen'
@@ -22,6 +23,7 @@ export function App() {
   const [profileVisited, setProfileVisited] = useState(parseHash().name === 'profile')
   const [notificationsVisited, setNotificationsVisited] = useState(parseHash().name === 'notifications')
   const [listsVisited, setListsVisited] = useState(parseHash().name === 'lists')
+  const [bookmarksVisited, setBookmarksVisited] = useState(parseHash().name === 'bookmarks')
   const [selectedLists, setSelectedLists] = useState<TwitterList[]>(() => settings ? loadSelectedLists(settings) : [])
   const [editingSettings, setEditingSettings] = useState(false)
   const [accounts, setAccounts] = useState<RelayAccount[]>([])
@@ -50,6 +52,7 @@ export function App() {
       if (next.name === 'profile') setProfileVisited(true)
       if (next.name === 'notifications') setNotificationsVisited(true)
       if (next.name === 'lists') setListsVisited(true)
+      if (next.name === 'bookmarks') setBookmarksVisited(true)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => {
@@ -213,6 +216,7 @@ export function App() {
             {route.name === 'tweet' ? <TweetScreen key={`${route.tweetId}:${refreshToken}`} settings={settings} tweetId={route.tweetId} media={route.media} /> : null}
             {notificationsVisited ? <div hidden={route.name !== 'notifications'}><NotificationsScreen settings={settings} tab={notificationTab} refreshToken={refreshToken} /></div> : null}
             {listsVisited ? <div hidden={route.name !== 'lists'}><ListsScreen settings={settings} viewerId={currentAccount?.profile?.id} selectedLists={selectedLists} onToggle={toggleList} refreshToken={refreshToken} /></div> : null}
+            {bookmarksVisited ? <div hidden={route.name !== 'bookmarks'}><BookmarksScreen settings={settings} refreshToken={refreshToken} /></div> : null}
             {route.name === 'search' ? <SearchScreen key={`${route.query}:${route.product}:${refreshToken}`} settings={settings} query={route.query} product={route.product} /> : null}
           </main>
         </PullToRefresh>

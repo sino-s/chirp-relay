@@ -98,7 +98,7 @@ describe('parseTimeline', () => {
   it('reads protected authors and standard URL cards', () => {
     const result = tweet('13', 'watch https://t.co/video')
     Object.assign(result.core.user_results.result, { privacy: { protected: true } })
-    Object.assign(result.legacy, { entities: { urls: [{
+    Object.assign(result.legacy, { bookmarked: true, entities: { urls: [{
       url: 'https://t.co/video',
       expanded_url: 'https://example.com/watch',
       display_url: 'example.com/watch'
@@ -116,6 +116,7 @@ describe('parseTimeline', () => {
     const page = parseTimeline({ entries: [{ entryId: 'tweet-13', content: { tweet_results: { result } } }] })
 
     expect(page.tweets[0]).toMatchObject({
+      bookmarked: true,
       author: { protected: true },
       linkPreview: {
         url: 'https://example.com/watch',
