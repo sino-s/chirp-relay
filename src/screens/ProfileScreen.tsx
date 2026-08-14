@@ -5,10 +5,10 @@ import { CalendarIcon, WarningIcon } from '../components/Icons'
 import { TimelineFeed } from '../components/TimelineFeed'
 import type { RelaySettings, ViewerProfile } from '../types'
 
-export function ProfileScreen({ settings, onSettings, userHandle, onBack }: { settings: RelaySettings; onSettings: () => void; userHandle?: string; onBack?: () => void }) {
+export function ProfileScreen({ settings, userHandle, onBack, refreshToken: externalRefreshToken = 0 }: { settings: RelaySettings; userHandle?: string; onBack?: () => void; refreshToken?: number }) {
   const [profile, setProfile] = useState<ViewerProfile>()
   const [error, setError] = useState<string>()
-  const [refreshToken, setRefreshToken] = useState(0)
+  const [retryToken, setRetryToken] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -20,7 +20,7 @@ export function ProfileScreen({ settings, onSettings, userHandle, onBack }: { se
       setError(reason instanceof Error ? reason.message : 'プロフィールを読み込めませんでした。')
     })
     return () => controller.abort()
-  }, [settings, userHandle, refreshToken])
+  }, [externalRefreshToken, settings, userHandle, retryToken])
 
   const loadTweets = useCallback((cursor?: string, signal?: AbortSignal) => {
     if (!profile) return Promise.resolve({ tweets: [] })
@@ -29,13 +29,13 @@ export function ProfileScreen({ settings, onSettings, userHandle, onBack }: { se
 
   function refresh() {
     setProfile(undefined)
-    setRefreshToken((value) => value + 1)
+    setRetryToken((value) => value + 1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
     <section>
-      <AppHeader title={profile?.name ?? 'プロフィール'} subtitle={profile ? `${profile.posts.toLocaleString('ja-JP')}件の投稿` : undefined} onBack={onBack} onRefresh={refresh} onSettings={onSettings} />
+      <AppHeader title={profile?.name ?? 'プロフィール'} subtitle={profile ? `${profile.posts.toLocaleString('ja-JP')}件の投稿` : undefined} onBack={onBack} />
       {error ? (
         <div class="flex flex-col items-center gap-3 px-6 py-16 text-center" role="alert">
           <WarningIcon class="text-danger" size={30} /><p class="text-sm text-muted">{error}</p>
@@ -45,7 +45,7 @@ export function ProfileScreen({ settings, onSettings, userHandle, onBack }: { se
         <>
           <ProfileHeader profile={profile} />
           <div class="border-b border-line px-4 pt-4"><h2 class="inline-block border-b-4 border-accent px-2 pb-3 text-sm font-bold">投稿</h2></div>
-          <TimelineFeed loadPage={loadTweets} refreshToken={refreshToken} emptyMessage="まだ投稿がありません。" />
+          <TimelineFeed loadPage={loadTweets} refreshToken={externalRefreshToken + retryToken} emptyMessage="まだ投稿がありません。" />
         </>
       ) : <ProfileSkeleton />}
     </section>

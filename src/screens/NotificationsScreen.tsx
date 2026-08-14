@@ -5,7 +5,7 @@ import { BellIcon, HeartIcon, RepostIcon, UserIcon } from '../components/Icons'
 import { routeHref } from '../router'
 import type { NotificationItem, RelaySettings } from '../types'
 
-export function NotificationsScreen({ settings, tab, onSettings }: { settings: RelaySettings; tab: 'all' | 'mentions'; onSettings: () => void }) {
+export function NotificationsScreen({ settings, tab, refreshToken = 0 }: { settings: RelaySettings; tab: 'all' | 'mentions'; refreshToken?: number }) {
   const [items, setItems] = useState<NotificationItem[]>([])
   const [cursor, setCursor] = useState<string>()
   const [loading, setLoading] = useState(true)
@@ -29,7 +29,7 @@ export function NotificationsScreen({ settings, tab, onSettings }: { settings: R
       setLoading(false)
     })
     return () => controller.abort()
-  }, [settings, tab, refresh])
+  }, [settings, tab, refresh, refreshToken])
 
   const loadMore = useCallback(() => {
     if (!cursor || loadingMore) return
@@ -58,7 +58,7 @@ export function NotificationsScreen({ settings, tab, onSettings }: { settings: R
 
   return (
     <section>
-      <AppHeader title="通知" onRefresh={() => setRefresh((value) => value + 1)} onSettings={onSettings}>
+      <AppHeader title="通知">
         <div class="grid grid-cols-2" role="tablist" aria-label="通知の種類">
           <NotificationTab active={tab === 'all'} href={routeHref({ name: 'notifications', tab: 'all' })}>すべて</NotificationTab>
           <NotificationTab active={tab === 'mentions'} href={routeHref({ name: 'notifications', tab: 'mentions' })}>メンション</NotificationTab>

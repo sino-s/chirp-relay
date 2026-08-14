@@ -16,7 +16,7 @@ export function nextReplyCursor(
   return responseCursor
 }
 
-export function TweetScreen({ settings, tweetId, media, onSettings }: { settings: RelaySettings; tweetId: string; media?: number; onSettings: () => void }) {
+export function TweetScreen({ settings, tweetId, media }: { settings: RelaySettings; tweetId: string; media?: number }) {
   const [conversation, setConversation] = useState<ConversationPage>()
   const [replies, setReplies] = useState<Tweet[]>([])
   const [cursor, setCursor] = useState<string>()
@@ -101,7 +101,7 @@ export function TweetScreen({ settings, tweetId, media, onSettings }: { settings
 
   return (
     <section>
-      <AppHeader title="ポスト" onBack={goBack} onSettings={onSettings} />
+      <AppHeader title="ポスト" onBack={goBack} />
       {error && !conversation ? <ErrorState message={error} onRetry={loadInitial} /> : null}
       {!conversation && !error ? <div class="h-48 animate-pulse border-b border-line bg-subtle/40" role="status" aria-label="投稿を読み込み中" /> : null}
       {conversation ? (

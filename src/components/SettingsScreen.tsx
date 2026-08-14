@@ -12,7 +12,6 @@ interface SettingsScreenProps {
 
 export function SettingsScreen({ initial, onSave, onCancel }: SettingsScreenProps) {
   const [baseUrl, setBaseUrl] = useState(initial?.baseUrl ?? 'http://localhost:4545')
-  const [profiles, setProfiles] = useState<string[]>(initial?.profileName ? [initial.profileName] : [])
   const [profileName, setProfileName] = useState(initial?.profileName ?? '')
   const [checking, setChecking] = useState(false)
   const [checkedUrl, setCheckedUrl] = useState(initial?.baseUrl)
@@ -30,7 +29,6 @@ export function SettingsScreen({ initial, onSave, onCancel }: SettingsScreenProp
       const found = await probeRelay(normalized)
       if (found.length === 0) throw new Error('relay に利用可能なプロフィールがありません。')
       setBaseUrl(normalized)
-      setProfiles(found)
       setProfileName((current) => found.includes(current) ? current : found[0] ?? '')
       setCheckedUrl(normalized)
     } catch (reason) {
@@ -46,7 +44,7 @@ export function SettingsScreen({ initial, onSave, onCancel }: SettingsScreenProp
     try {
       const normalized = normalizeRelayUrl(baseUrl)
       if (checkedUrl !== normalized || !profileName) {
-        setError('接続を確認してプロフィールを選択してください。')
+        setError('接続を確認してください。')
         return
       }
       onSave({ baseUrl: normalized, profileName })
@@ -60,12 +58,13 @@ export function SettingsScreen({ initial, onSave, onCancel }: SettingsScreenProp
       <div class="mb-8">
         <div class="mb-5 grid size-14 place-items-center rounded-2xl bg-accent text-2xl font-black text-white">C</div>
         <h1 class="text-3xl font-black tracking-tight">Chirp Relay</h1>
-        <p class="mt-2 text-sm leading-6 text-muted">Tailscale 内の twitter-api-safe-relay に接続します。URLとプロフィール名だけがこの端末に保存されます。</p>
+        <p class="mt-2 text-sm leading-6 text-muted">Tailscale 内の twitter-api-safe-relay に接続します。アカウントは接続後にサイドメニューから切り替えられます。</p>
       </div>
       <form class="space-y-5" onSubmit={submit}>
-        <label class="block">
-          <span class="mb-2 block text-sm font-bold">Relay URL</span>
+        <div>
+          <label class="mb-2 block text-sm font-bold" for="relay-url">Relay URL</label>
           <input
+            id="relay-url"
             class="field"
             type="url"
             name="relay-url"
@@ -77,27 +76,20 @@ export function SettingsScreen({ initial, onSave, onCancel }: SettingsScreenProp
             autoCorrect="off"
             autoComplete="off"
             spellcheck={false}
+            aria-describedby="relay-url-help"
             required
           />
-          <span class="mt-2 block text-xs leading-5 text-muted">公開版では Tailscale Serve の HTTPS URL を指定してください。</span>
-        </label>
+          <span id="relay-url-help" class="mt-2 block text-xs leading-5 text-muted">公開版では Tailscale Serve の HTTPS URL を指定してください。</span>
+        </div>
         <button class="secondary-button w-full" type="button" disabled={checking || !baseUrl.trim()} onClick={checkConnection}>
           {checking ? '確認中…' : checkedUrl ? <><CheckIcon size={18} />接続済み</> : '接続を確認'}
         </button>
-        {profiles.length > 0 ? (
-          <label class="block">
-            <span class="mb-2 block text-sm font-bold">プロフィール</span>
-            <select class="field" name="relay-profile" autoComplete="off" value={profileName} onChange={(event) => setProfileName(event.currentTarget.value)}>
-              {profiles.map((profile) => <option key={profile} value={profile}>{profile}</option>)}
-            </select>
-          </label>
-        ) : null}
         {error ? (
           <div class="flex gap-2 rounded-xl bg-danger/10 p-3 text-sm text-danger" role="alert"><WarningIcon class="shrink-0" size={18} /><span>{error}</span></div>
         ) : null}
         <div class="flex gap-3 pt-2">
           {onCancel ? <button class="secondary-button flex-1" type="button" onClick={onCancel}>キャンセル</button> : null}
-          <button class="primary-button flex-1" type="submit" disabled={!checkedUrl || !profileName}>保存して開始</button>
+          <button class="primary-button flex-1" type="submit" disabled={!checkedUrl || !profileName}>Relay URLを保存</button>
         </div>
       </form>
     </main>

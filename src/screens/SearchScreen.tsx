@@ -14,7 +14,7 @@ const TABS: { product: SearchProduct; label: string }[] = [
   { product: 'media', label: 'メディア' }
 ]
 
-export function SearchScreen({ settings, query, product, onSettings }: { settings: RelaySettings; query: string; product: SearchProduct; onSettings: () => void }) {
+export function SearchScreen({ settings, query, product }: { settings: RelaySettings; query: string; product: SearchProduct }) {
   const [input, setInput] = useState(query)
   useEffect(() => setInput(query), [query])
   const loadTweets = useCallback((cursor?: string, signal?: AbortSignal) => searchTwitter(settings, query, product, cursor, signal), [product, query, settings])
@@ -27,7 +27,7 @@ export function SearchScreen({ settings, query, product, onSettings }: { setting
 
   return (
     <section>
-      <AppHeader title="検索" onSettings={onSettings}>
+      <AppHeader title="検索">
         <form class="px-3 pb-2" role="search" onSubmit={submit}>
           <label class="flex min-h-11 items-center gap-2 rounded-full bg-subtle px-4 focus-within:outline-2 focus-within:outline-accent">
             <SearchIcon class="shrink-0 text-muted" size={19} />

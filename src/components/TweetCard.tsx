@@ -85,9 +85,9 @@ export function TweetCard({ tweet, detail = false }: { tweet: Tweet; detail?: bo
         </div>
       ) : null}
       <div class="flex gap-3">
-        <a class="relative z-20" href={routeHref({ name: 'user', handle: tweet.author.handle })} aria-label={`${tweet.author.name}のプロフィール`}>
+        <a class="relative z-20 block size-10 shrink-0 self-start" href={routeHref({ name: 'user', handle: tweet.author.handle })} aria-label={`${tweet.author.name}のプロフィール`}>
           {tweet.author.avatarUrl ? (
-            <img class="size-10 shrink-0 rounded-full bg-subtle" src={tweet.author.avatarUrl} width="40" height="40" alt="" loading="lazy" />
+            <img class="size-full rounded-full bg-subtle" src={tweet.author.avatarUrl} width="40" height="40" alt="" loading="lazy" />
           ) : (
             <span class="block size-10 rounded-full bg-subtle" />
           )}
