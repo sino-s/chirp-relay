@@ -12,6 +12,7 @@ function makeTweet(overrides: Partial<Tweet> = {}): Tweet {
     metrics: { replies: 1, reposts: 2, likes: 3 },
     media: [],
     links: [],
+    mentions: [],
     liked: false,
     retweeted: false,
     url: 'https://x.com/user/status/123',

@@ -76,18 +76,22 @@ describe('parseTimeline', () => {
     const result = tweet('12', 'legacy fallback')
     Object.assign(result, {
       note_tweet: { note_tweet_results: { result: {
-        text: 'long post https://t.co/note',
-        entity_set: { urls: [{
-          url: 'https://t.co/note',
-          expanded_url: 'https://example.com/long-post',
-          display_url: 'example.com/long-post'
-        }] }
+        text: 'long post @alice https://t.co/note',
+        entity_set: {
+          urls: [{
+            url: 'https://t.co/note',
+            expanded_url: 'https://example.com/long-post',
+            display_url: 'example.com/long-post'
+          }],
+          user_mentions: [{ screen_name: 'alice' }]
+        }
       } } }
     })
     const page = parseTimeline({ entries: [{ entryId: 'tweet-12', content: { tweet_results: { result } } }] })
     expect(page.tweets[0]).toMatchObject({
-      text: 'long post https://t.co/note',
-      links: [{ expandedUrl: 'https://example.com/long-post', displayUrl: 'example.com/long-post' }]
+      text: 'long post @alice https://t.co/note',
+      links: [{ expandedUrl: 'https://example.com/long-post', displayUrl: 'example.com/long-post' }],
+      mentions: [{ handle: 'alice' }]
     })
   })
 

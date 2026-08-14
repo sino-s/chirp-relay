@@ -27,4 +27,12 @@ describe('TweetText', () => {
     expect(links[1]).toHaveAttribute('href', '#/search?q=%EF%BC%83%E5%86%99%E7%9C%9F&tab=top')
     expect(links).toHaveLength(3)
   })
+
+  it('colors entity mentions and routes them to the in-app profile', () => {
+    render(<TweetText text="hello @Alice and @unknown" links={[]} mentions={[{ handle: 'alice' }]} />)
+    const mention = screen.getByRole('link', { name: '@Alice' })
+    expect(mention).toHaveAttribute('href', '#/user/alice')
+    expect(mention).toHaveClass('tweet-entity-link')
+    expect(screen.queryByRole('link', { name: '@unknown' })).not.toBeInTheDocument()
+  })
 })

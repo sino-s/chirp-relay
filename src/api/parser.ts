@@ -1,4 +1,4 @@
-import type { ConversationPage, NotificationItem, NotificationPage, SearchPage, TimelinePage, Tweet, TweetAuthor, TweetLink, TweetLinkPreview, TweetMedia, TwitterList, TwitterListPage, ViewerProfile } from '../types'
+import type { ConversationPage, NotificationItem, NotificationPage, SearchPage, TimelinePage, Tweet, TweetAuthor, TweetLink, TweetLinkPreview, TweetMedia, TweetMention, TwitterList, TwitterListPage, ViewerProfile } from '../types'
 
 type JsonObject = Record<string, unknown>
 
@@ -128,6 +128,18 @@ function parseLinks(source: JsonObject): TweetLink[] {
       displayUrl: typeof item.display_url === 'string' ? item.display_url : item.url
     }]
   })
+}
+
+function parseMentions(source: JsonObject): TweetMention[] {
+  const entities = objectAt(source, 'entity_set') ?? objectAt(source, 'entities')
+  const raw = entities?.user_mentions ?? entities?.mentions
+  if (!Array.isArray(raw)) return []
+  const byHandle = new Map<string, TweetMention>()
+  for (const item of raw) {
+    if (!isObject(item) || typeof item.screen_name !== 'string' || !item.screen_name) continue
+    byHandle.set(item.screen_name.toLowerCase(), { handle: item.screen_name })
+  }
+  return [...byHandle.values()]
 }
 
 function parseMedia(legacy: JsonObject): TweetMedia[] {
@@ -274,7 +286,9 @@ export function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefin
   const noteResult = objectAt(source, 'note_tweet', 'note_tweet_results', 'result')
   const noteText = stringAt(noteResult, 'text')
   const noteLinks = noteResult ? parseLinks(noteResult) : []
+  const noteMentions = noteResult ? parseMentions(noteResult) : []
   const links = noteLinks.length > 0 ? noteLinks : parseLinks(legacy)
+  const mentions = noteMentions.length > 0 ? noteMentions : parseMentions(legacy)
   const rawText = noteText ?? stringAt(legacy, 'full_text') ?? ''
   const quotedResult = objectAt(source, 'quoted_status_result', 'result')
   const quotedSource = quotedResult ? findTweetResult(quotedResult) : undefined
@@ -294,6 +308,7 @@ export function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefin
     },
     media,
     links,
+    mentions,
     liked: booleanAt(legacy, 'favorited'),
     retweeted: booleanAt(legacy, 'retweeted'),
     linkPreview: parseLinkPreview(source, links),

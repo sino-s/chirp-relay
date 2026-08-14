@@ -55,6 +55,10 @@ export interface TweetLink {
   displayUrl: string
 }
 
+export interface TweetMention {
+  handle: string
+}
+
 export interface TweetLinkPreview {
   url: string
   title: string
@@ -73,6 +77,7 @@ export interface Tweet {
   metrics: TweetMetrics
   media: TweetMedia[]
   links: TweetLink[]
+  mentions: TweetMention[]
   liked: boolean
   retweeted: boolean
   linkPreview?: TweetLinkPreview

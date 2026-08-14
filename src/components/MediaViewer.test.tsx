@@ -11,6 +11,7 @@ const tweet: Tweet = {
   metrics: { replies: 0, reposts: 0, likes: 0 },
   media: [{ id: 'm1', type: 'photo', previewUrl: 'https://img.example/photo.jpg' }],
   links: [],
+  mentions: [],
   liked: false,
   retweeted: false,
   url: 'https://x.com/user/status/123'

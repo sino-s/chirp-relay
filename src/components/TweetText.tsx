@@ -1,17 +1,18 @@
 import type { JSX } from 'preact'
 import { routeHref } from '../router'
-import type { TweetLink } from '../types'
+import type { TweetLink, TweetMention } from '../types'
 
 interface TextToken {
   start: number
   end: number
-  kind: 'url' | 'hashtag'
+  kind: 'url' | 'hashtag' | 'mention'
   href: string
   label: string
 }
 
 const RAW_URL_PATTERN = /https?:\/\/[^\s<>"']+/giu
 const HASHTAG_PATTERN = /[#＃][\p{L}\p{M}\p{N}_]+/gu
+const MENTION_PATTERN = /@[A-Za-z0-9_]{1,15}/gu
 const TRAILING_URL_PUNCTUATION = /[.,!?;:、。！？）\])}」』】]+$/u
 
 function occurrences(text: string, value: string): number[] {
@@ -31,7 +32,7 @@ function overlaps(token: TextToken, accepted: TextToken[]): boolean {
   return accepted.some((item) => token.start < item.end && token.end > item.start)
 }
 
-function textTokens(text: string, links: TweetLink[]): TextToken[] {
+function textTokens(text: string, links: TweetLink[], mentions: TweetMention[]): TextToken[] {
   const candidates: TextToken[] = []
   for (const link of links) {
     const href = /^https?:\/\//i.test(link.expandedUrl) ? link.expandedUrl : link.url
@@ -59,9 +60,25 @@ function textTokens(text: string, links: TweetLink[]): TextToken[] {
     })
   }
 
+  const mentionedHandles = new Map(mentions.map((mention) => [mention.handle.toLowerCase(), mention.handle]))
+  for (const match of text.matchAll(MENTION_PATTERN)) {
+    if (match.index === undefined) continue
+    const textHandle = match[0].slice(1)
+    const handle = mentionedHandles.get(textHandle.toLowerCase())
+    if (!handle) continue
+    candidates.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      kind: 'mention',
+      href: routeHref({ name: 'user', handle }),
+      label: match[0]
+    })
+  }
+
+  const priority: Record<TextToken['kind'], number> = { url: 0, hashtag: 1, mention: 2 }
   candidates.sort((left, right) => {
     if (left.start !== right.start) return left.start - right.start
-    if (left.kind !== right.kind) return left.kind === 'url' ? -1 : 1
+    if (left.kind !== right.kind) return priority[left.kind] - priority[right.kind]
     return right.end - left.end
   })
   const accepted: TextToken[] = []
@@ -71,8 +88,8 @@ function textTokens(text: string, links: TweetLink[]): TextToken[] {
   return accepted.sort((left, right) => left.start - right.start)
 }
 
-export function TweetText({ text, links }: { text: string; links: TweetLink[] }): JSX.Element {
-  const tokens = textTokens(text, links)
+export function TweetText({ text, links, mentions = [] }: { text: string; links: TweetLink[]; mentions?: TweetMention[] }): JSX.Element {
+  const tokens = textTokens(text, links, mentions)
   const parts: JSX.Element[] = []
   let offset = 0
   for (const token of tokens) {
@@ -80,7 +97,7 @@ export function TweetText({ text, links }: { text: string; links: TweetLink[] })
     parts.push(token.kind === 'url' ? (
       <a key={`url-${token.start}`} class="tweet-entity-link relative z-20" href={token.href} target="_blank" rel="noopener noreferrer">{token.label}</a>
     ) : (
-      <a key={`hashtag-${token.start}`} class="tweet-entity-link relative z-20" href={token.href}>{token.label}</a>
+      <a key={`${token.kind}-${token.start}`} class="tweet-entity-link relative z-20" href={token.href}>{token.label}</a>
     ))
     offset = token.end
   }

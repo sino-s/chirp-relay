@@ -20,6 +20,7 @@ const tweet: Tweet = {
   metrics: { replies: 0, reposts: 2, likes: 3 },
   media: [],
   links: [],
+  mentions: [],
   liked: false,
   retweeted: false,
   url: 'https://x.com/user/status/123'

@@ -72,7 +72,7 @@ function QuoteCard({ tweet }: { tweet: Tweet }): JSX.Element {
         {tweet.author.protected ? <span class="shrink-0 text-muted" aria-label="非公開アカウント"><LockIcon size={14} /></span> : null}
         <span class="truncate text-muted">@{tweet.author.handle}</span>
       </div>
-      <p class="mt-1 whitespace-pre-wrap break-words text-[15px] leading-5"><TweetText text={tweet.text} links={tweet.links} /></p>
+      <p class="mt-1 whitespace-pre-wrap break-words text-[15px] leading-5"><TweetText text={tweet.text} links={tweet.links} mentions={tweet.mentions} /></p>
       {tweet.media[0] ? (
         <img class="mt-2 max-h-48 w-full rounded-xl object-cover" src={twitterImageUrl(tweet.media[0].previewUrl, 'small')} alt="引用投稿の画像" width={tweet.media[0].width ?? 600} height={tweet.media[0].height ?? 338} loading="lazy" />
       ) : null}
@@ -213,7 +213,7 @@ export function TweetCard({ tweet, detail = false }: { tweet: Tweet; detail?: bo
             </a>
           </div>
           <p class={`mt-0.5 whitespace-pre-wrap break-words leading-5.5 ${detail ? 'text-[17px]' : 'text-[15px]'}`}>
-            <TweetText text={tweet.text} links={tweet.links} />
+            <TweetText text={tweet.text} links={tweet.links} mentions={tweet.mentions} />
           </p>
           <MediaGrid tweet={tweet} />
           <LinkPreview tweet={tweet} />
