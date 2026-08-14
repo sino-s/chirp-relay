@@ -163,10 +163,25 @@ describe('parseTimeline', () => {
 describe('parseViewer', () => {
   it('normalizes the signed-in viewer', () => {
     const result = user('viewer', 'me', 'My Name')
-    result.legacy = { description: 'bio', followers_count: 12, friends_count: 3, statuses_count: 99 }
+    result.legacy = {
+      description: 'bio',
+      followers_count: 12,
+      friends_count: 3,
+      statuses_count: 99,
+      url: 'https://t.co/profile',
+      entities: { url: { urls: [{ url: 'https://t.co/profile', expanded_url: 'https://example.com/about', display_url: 'example.com/about' }] } }
+    }
     Object.assign(result, { privacy: { protected: true } })
     const profile = parseViewer({ data: { viewer: { user_results: { result } } } })
-    expect(profile).toMatchObject({ id: 'viewer', handle: 'me', followers: 12, following: 3, posts: 99, protected: true })
+    expect(profile).toMatchObject({
+      id: 'viewer',
+      handle: 'me',
+      followers: 12,
+      following: 3,
+      posts: 99,
+      protected: true,
+      website: { url: 'https://example.com/about', displayUrl: 'example.com/about' }
+    })
   })
 })
 

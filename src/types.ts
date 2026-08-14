@@ -15,6 +15,10 @@ export interface ViewerProfile {
   posts: number
   joinedAt?: string
   protected?: boolean
+  website?: {
+    url: string
+    displayUrl: string
+  }
 }
 
 export interface TweetAuthor {

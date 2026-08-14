@@ -384,7 +384,26 @@ function parseUserProfileResult(result: JsonObject): ViewerProfile {
     following: numberAt(result, 'legacy', 'friends_count'),
     posts: numberAt(result, 'legacy', 'statuses_count'),
     joinedAt: stringAt(result, 'core', 'created_at'),
-    protected: booleanAt(result, 'privacy', 'protected') || booleanAt(result, 'legacy', 'protected')
+    protected: booleanAt(result, 'privacy', 'protected') || booleanAt(result, 'legacy', 'protected'),
+    website: parseProfileWebsite(result)
+  }
+}
+
+function parseProfileWebsite(result: JsonObject): ViewerProfile['website'] {
+  const urls = objectAt(result, 'legacy', 'entities', 'url')?.urls
+  const entity = Array.isArray(urls) ? urls.find(isObject) : undefined
+  const fallbackUrl = stringAt(result, 'legacy', 'url')
+  const url = entity && typeof entity.expanded_url === 'string' ? entity.expanded_url : fallbackUrl
+  if (!url) return undefined
+  try {
+    const protocol = new URL(url).protocol
+    if (protocol !== 'http:' && protocol !== 'https:') return undefined
+  } catch {
+    return undefined
+  }
+  return {
+    url,
+    displayUrl: entity && typeof entity.display_url === 'string' ? entity.display_url : url
   }
 }
 

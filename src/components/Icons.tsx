@@ -59,6 +59,10 @@ export function CalendarIcon(props: IconProps): JSX.Element {
   return <Icon {...props}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></Icon>
 }
 
+export function LinkIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1" /><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1" /></Icon>
+}
+
 export function CheckIcon(props: IconProps): JSX.Element {
   return <Icon {...props}><path d="m20 6-11 11-5-5" /></Icon>
 }

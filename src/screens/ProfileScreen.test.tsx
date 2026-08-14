@@ -12,7 +12,7 @@ vi.mock('../api/client', () => ({
 }))
 
 const settings = { baseUrl: 'http://relay.example', profileName: 'one' }
-const profile = { id: 'user-1', name: 'User', handle: 'user', description: '', avatarUrl: '', followers: 0, following: 0, posts: 0 }
+const profile = { id: 'user-1', name: 'User', handle: 'user', description: '', avatarUrl: '', followers: 0, following: 0, posts: 0, website: { url: 'https://example.com/about', displayUrl: 'example.com/about' } }
 
 describe('ProfileScreen', () => {
   it('loads media and likes lazily and keeps all profile tabs mounted', async () => {
@@ -22,6 +22,7 @@ describe('ProfileScreen', () => {
     vi.mocked(fetchUserLikes).mockResolvedValue({ tweets: [] })
     render(<ProfileScreen settings={settings} />)
     await waitFor(() => expect(fetchUserTweets).toHaveBeenCalledOnce())
+    expect(screen.getByRole('link', { name: 'example.com/about' })).toHaveAttribute('href', 'https://example.com/about')
 
     fireEvent.click(screen.getByRole('tab', { name: 'メディア' }))
     await waitFor(() => expect(fetchUserMedia).toHaveBeenCalledOnce())
