@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { Navigation } from './Navigation'
 
 const accounts = [
-  { profileName: 'one', profile: { id: '1', name: 'One', handle: 'one', description: '', avatarUrl: 'https://img.example/one.jpg', followers: 0, following: 0, posts: 0, likes: 0 } },
-  { profileName: 'two', profile: { id: '2', name: 'Two', handle: 'two', description: '', avatarUrl: 'https://img.example/two.jpg', followers: 0, following: 0, posts: 0, likes: 0 } }
+  { profileName: 'one', profile: { id: '1', name: 'One', handle: 'one', description: '', descriptionLinks: [], avatarUrl: 'https://img.example/one.jpg', followers: 0, following: 0, posts: 0, likes: 0 } },
+  { profileName: 'two', profile: { id: '2', name: 'Two', handle: 'two', description: '', descriptionLinks: [], avatarUrl: 'https://img.example/two.jpg', followers: 0, following: 0, posts: 0, likes: 0 } }
 ]
 
 describe('Navigation', () => {

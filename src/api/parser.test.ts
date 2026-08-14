@@ -175,7 +175,10 @@ describe('parseViewer', () => {
       statuses_count: 99,
       favourites_count: 456,
       url: 'https://t.co/profile',
-      entities: { url: { urls: [{ url: 'https://t.co/profile', expanded_url: 'https://example.com/about', display_url: 'example.com/about' }] } }
+      entities: {
+        url: { urls: [{ url: 'https://t.co/profile', expanded_url: 'https://example.com/about', display_url: 'example.com/about' }] },
+        description: { urls: [{ url: 'https://t.co/bio', expanded_url: 'https://example.com/bio', display_url: 'example.com/bio' }] }
+      }
     }
     Object.assign(result, { privacy: { protected: true } })
     const profile = parseViewer({ data: { viewer: { user_results: { result } } } })
@@ -187,6 +190,7 @@ describe('parseViewer', () => {
       posts: 99,
       likes: 456,
       protected: true,
+      descriptionLinks: [{ url: 'https://t.co/bio', expandedUrl: 'https://example.com/bio', displayUrl: 'example.com/bio' }],
       website: { url: 'https://example.com/about', displayUrl: 'example.com/about' }
     })
   })

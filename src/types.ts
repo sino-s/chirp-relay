@@ -8,6 +8,7 @@ export interface ViewerProfile {
   name: string
   handle: string
   description: string
+  descriptionLinks: TweetLink[]
   avatarUrl: string
   bannerUrl?: string
   followers: number

@@ -3,6 +3,7 @@ import { fetchUserLikes, fetchUserMedia, fetchUserProfile, fetchUserTweets, fetc
 import { AppHeader } from '../components/AppHeader'
 import { CalendarIcon, LinkIcon, LockIcon, WarningIcon } from '../components/Icons'
 import { TimelineFeed } from '../components/TimelineFeed'
+import { TweetText } from '../components/TweetText'
 import type { RelaySettings, ViewerProfile } from '../types'
 
 type ProfileTab = 'posts' | 'media' | 'likes'
@@ -107,9 +108,9 @@ function ProfileHeader({ profile }: { profile: ViewerProfile }) {
         </div>
         <h2 class="flex items-center gap-1.5 text-xl font-extrabold leading-6">{profile.name}{profile.protected ? <span class="text-muted" aria-label="非公開アカウント"><LockIcon size={17} /></span> : null}</h2>
         <p class="text-[15px] text-muted">@{profile.handle}</p>
-        {profile.description ? <p class="mt-3 whitespace-pre-wrap break-words text-[15px] leading-5.5">{profile.description}</p> : null}
+        {profile.description ? <p class="mt-3 whitespace-pre-wrap break-words text-[15px] leading-5.5"><TweetText text={profile.description} links={profile.descriptionLinks} /></p> : null}
         {profile.website ? (
-          <a class="mt-3 flex w-fit max-w-full items-center gap-1.5 text-sm text-accent hover:underline" href={profile.website.url} target="_blank" rel="noopener noreferrer">
+          <a class="tweet-entity-link mt-3 flex w-fit max-w-full items-center gap-1.5 text-sm" href={profile.website.url} target="_blank" rel="noopener noreferrer">
             <LinkIcon class="shrink-0 text-muted" size={18} />
             <span class="truncate">{profile.website.displayUrl}</span>
           </a>

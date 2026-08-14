@@ -117,8 +117,7 @@ function parseAuthor(result: JsonObject): TweetAuthor | undefined {
   return user ? parseUserAuthor(user) : undefined
 }
 
-function parseLinks(source: JsonObject): TweetLink[] {
-  const raw = (objectAt(source, 'entity_set') ?? objectAt(source, 'entities'))?.urls
+function parseUrlEntities(raw: unknown): TweetLink[] {
   if (!Array.isArray(raw)) return []
   return raw.flatMap((item) => {
     if (!isObject(item) || typeof item.url !== 'string') return []
@@ -128,6 +127,10 @@ function parseLinks(source: JsonObject): TweetLink[] {
       displayUrl: typeof item.display_url === 'string' ? item.display_url : item.url
     }]
   })
+}
+
+function parseLinks(source: JsonObject): TweetLink[] {
+  return parseUrlEntities((objectAt(source, 'entity_set') ?? objectAt(source, 'entities'))?.urls)
 }
 
 function parseMentions(source: JsonObject): TweetMention[] {
@@ -394,6 +397,7 @@ function parseUserProfileResult(result: JsonObject): ViewerProfile {
     handle,
     name: stringAt(result, 'core', 'name') ?? handle,
     description: stringAt(result, 'legacy', 'description') ?? '',
+    descriptionLinks: parseUrlEntities(objectAt(result, 'legacy', 'entities', 'description')?.urls),
     avatarUrl: stringAt(result, 'avatar', 'image_url') ?? stringAt(result, 'legacy', 'profile_image_url_https') ?? '',
     bannerUrl: stringAt(result, 'legacy', 'profile_banner_url'),
     followers: numberAt(result, 'legacy', 'followers_count'),
