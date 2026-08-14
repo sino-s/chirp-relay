@@ -60,9 +60,15 @@ export function ProfileScreen({ settings, userHandle, onBack, refreshToken: exte
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const headerSubtitle = profile
+    ? activeTab === 'likes'
+      ? `${profile.likes.toLocaleString('ja-JP')}件のいいね`
+      : `${profile.posts.toLocaleString('ja-JP')}件の投稿`
+    : undefined
+
   return (
     <section>
-      <AppHeader title={profile?.name ?? 'プロフィール'} subtitle={profile ? `${profile.posts.toLocaleString('ja-JP')}件の投稿` : undefined} onBack={onBack} />
+      <AppHeader title={profile?.name ?? 'プロフィール'} subtitle={headerSubtitle} onBack={onBack} />
       {error ? (
         <div class="flex flex-col items-center gap-3 px-6 py-16 text-center" role="alert">
           <WarningIcon class="text-danger" size={30} /><p class="text-sm text-muted">{error}</p>

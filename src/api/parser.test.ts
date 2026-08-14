@@ -168,6 +168,7 @@ describe('parseViewer', () => {
       followers_count: 12,
       friends_count: 3,
       statuses_count: 99,
+      favourites_count: 456,
       url: 'https://t.co/profile',
       entities: { url: { urls: [{ url: 'https://t.co/profile', expanded_url: 'https://example.com/about', display_url: 'example.com/about' }] } }
     }
@@ -179,6 +180,7 @@ describe('parseViewer', () => {
       followers: 12,
       following: 3,
       posts: 99,
+      likes: 456,
       protected: true,
       website: { url: 'https://example.com/about', displayUrl: 'example.com/about' }
     })

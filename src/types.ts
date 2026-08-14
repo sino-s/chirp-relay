@@ -13,6 +13,7 @@ export interface ViewerProfile {
   followers: number
   following: number
   posts: number
+  likes: number
   joinedAt?: string
   protected?: boolean
   website?: {

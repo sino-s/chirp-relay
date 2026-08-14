@@ -383,6 +383,7 @@ function parseUserProfileResult(result: JsonObject): ViewerProfile {
     followers: numberAt(result, 'legacy', 'followers_count'),
     following: numberAt(result, 'legacy', 'friends_count'),
     posts: numberAt(result, 'legacy', 'statuses_count'),
+    likes: numberAt(result, 'legacy', 'favourites_count'),
     joinedAt: stringAt(result, 'core', 'created_at'),
     protected: booleanAt(result, 'privacy', 'protected') || booleanAt(result, 'legacy', 'protected'),
     website: parseProfileWebsite(result)

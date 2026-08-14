@@ -12,7 +12,7 @@ vi.mock('../api/client', () => ({
 }))
 
 const settings = { baseUrl: 'http://relay.example', profileName: 'one' }
-const profile = { id: 'user-1', name: 'User', handle: 'user', description: '', avatarUrl: '', followers: 0, following: 0, posts: 0, website: { url: 'https://example.com/about', displayUrl: 'example.com/about' } }
+const profile = { id: 'user-1', name: 'User', handle: 'user', description: '', avatarUrl: '', followers: 0, following: 0, posts: 12, likes: 1234, website: { url: 'https://example.com/about', displayUrl: 'example.com/about' } }
 
 describe('ProfileScreen', () => {
   it('loads media and likes lazily and keeps all profile tabs mounted', async () => {
@@ -23,12 +23,15 @@ describe('ProfileScreen', () => {
     render(<ProfileScreen settings={settings} />)
     await waitFor(() => expect(fetchUserTweets).toHaveBeenCalledOnce())
     expect(screen.getByRole('link', { name: 'example.com/about' })).toHaveAttribute('href', 'https://example.com/about')
+    expect(screen.getByText('12件の投稿')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: 'メディア' }))
     await waitFor(() => expect(fetchUserMedia).toHaveBeenCalledOnce())
     fireEvent.click(screen.getByRole('tab', { name: 'いいね' }))
     await waitFor(() => expect(fetchUserLikes).toHaveBeenCalledOnce())
+    expect(screen.getByText('1,234件のいいね')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: '投稿' }))
+    expect(screen.getByText('12件の投稿')).toBeInTheDocument()
 
     expect(fetchUserTweets).toHaveBeenCalledOnce()
     expect(fetchUserMedia).toHaveBeenCalledOnce()
