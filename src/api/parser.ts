@@ -294,6 +294,8 @@ export function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefin
     },
     media,
     links,
+    liked: booleanAt(legacy, 'favorited'),
+    retweeted: booleanAt(legacy, 'retweeted'),
     linkPreview: parseLinkPreview(source, links),
     quotedTweet: quotedSource ? parseTweetResult(quotedSource, depth + 1) : undefined,
     repostedBy: wrapperAuthor?.name,

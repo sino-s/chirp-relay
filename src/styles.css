@@ -147,6 +147,11 @@ h1, h2, h3 { text-wrap: balance; scroll-margin-top: 5rem; }
   transform: translateY(100%);
 }
 
+.compose-fab {
+  right: max(1rem, calc((100vw - 600px) / 2 + 1rem));
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
 .media-arrow {
   position: fixed;
   top: 50%;
@@ -168,6 +173,11 @@ h1, h2, h3 { text-wrap: balance; scroll-margin-top: 5rem; }
 }
 
 @media (min-width: 768px) {
+  .compose-fab {
+    right: max(1.5rem, calc((100vw - 860px) / 2 + 1.5rem));
+    bottom: 1.5rem;
+  }
+
   .chrome-hidden .mobile-top-chrome {
     pointer-events: auto;
     opacity: 1;

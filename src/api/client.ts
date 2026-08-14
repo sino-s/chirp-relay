@@ -38,17 +38,43 @@ async function graphqlGet(
 
 async function graphqlPost(
   settings: RelaySettings,
-  operation: { path: string; queryId: string; features: object },
+  operation: { path: string; queryId: string; features?: object },
   variables: object,
   signal?: AbortSignal
 ): Promise<unknown> {
+  const body: { variables: object; queryId: string; features?: object } = { variables, queryId: operation.queryId }
+  if (operation.features) body.features = operation.features
   const response = await fetch(`${settings.baseUrl}/i/api${operation.path}`, {
     method: 'POST',
     headers: baseHeaders(settings),
-    body: JSON.stringify({ variables, features: operation.features, queryId: operation.queryId }),
+    body: JSON.stringify(body),
     signal
   })
   return readJson(response)
+}
+
+export async function createTweet(settings: RelaySettings, text: string, signal?: AbortSignal): Promise<string> {
+  const value = await graphqlPost(settings, OPERATIONS.createTweet, {
+    tweet_text: text,
+    media: { media_entities: [], possibly_sensitive: false },
+    semantic_annotation_ids: [],
+    disallowed_reply_options: null,
+    semantic_annotation_options: { source: 'Htl' }
+  }, signal) as { data?: { create_tweet?: { tweet_results?: { result?: { rest_id?: unknown } } } } }
+  const id = value.data?.create_tweet?.tweet_results?.result?.rest_id
+  if (typeof id !== 'string' || !id) throw new Error('投稿結果を確認できませんでした。')
+  return id
+}
+
+export async function setTweetLiked(settings: RelaySettings, tweetId: string, liked: boolean, signal?: AbortSignal): Promise<void> {
+  const operation = liked ? OPERATIONS.favoriteTweet : OPERATIONS.unfavoriteTweet
+  await graphqlPost(settings, operation, { tweet_id: tweetId }, signal)
+}
+
+export async function setTweetRetweeted(settings: RelaySettings, tweetId: string, retweeted: boolean, signal?: AbortSignal): Promise<void> {
+  const operation = retweeted ? OPERATIONS.createRetweet : OPERATIONS.deleteRetweet
+  const variables = retweeted ? { tweet_id: tweetId } : { source_tweet_id: tweetId }
+  await graphqlPost(settings, operation, variables, signal)
 }
 
 export async function probeRelay(baseUrl: string, signal?: AbortSignal): Promise<string[]> {

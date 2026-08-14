@@ -68,6 +68,8 @@ export interface Tweet {
   metrics: TweetMetrics
   media: TweetMedia[]
   links: TweetLink[]
+  liked: boolean
+  retweeted: boolean
   linkPreview?: TweetLinkPreview
   quotedTweet?: Tweet
   repostedBy?: string

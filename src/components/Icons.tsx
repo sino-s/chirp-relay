@@ -98,3 +98,7 @@ export function PlayIcon(props: IconProps): JSX.Element {
 export function LockIcon(props: IconProps): JSX.Element {
   return <Icon {...props}><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></Icon>
 }
+
+export function ComposeIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></Icon>
+}

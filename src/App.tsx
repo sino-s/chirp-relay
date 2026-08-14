@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { fetchViewer, probeRelay } from './api/client'
 import { Navigation, type RelayAccount } from './components/Navigation'
+import { ComposeButton, Composer } from './components/Composer'
 import { PullToRefresh } from './components/PullToRefresh'
 import { SettingsScreen } from './components/SettingsScreen'
 import { ensureAppHistoryEntry, markAppHistoryEntry, navigate, parseHash, routeScrollKey, type AppRoute } from './router'
@@ -10,6 +11,7 @@ import { ProfileScreen } from './screens/ProfileScreen'
 import { SearchScreen } from './screens/SearchScreen'
 import { TweetScreen } from './screens/TweetScreen'
 import { loadSettings, saveSettings } from './settings'
+import { RelaySettingsContext } from './relay-context'
 import type { RelaySettings } from './types'
 
 export function App() {
@@ -21,6 +23,7 @@ export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [chromeHidden, setChromeHidden] = useState(false)
   const [refreshToken, setRefreshToken] = useState(0)
+  const [composerOpen, setComposerOpen] = useState(false)
   const routeRef = useRef(route)
   const historyIndexRef = useRef(0)
   const scrollPositionsRef = useRef(new Map<string, number>())
@@ -149,6 +152,7 @@ export function App() {
   }
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+  const closeComposer = useCallback(() => setComposerOpen(false), [])
 
   function selectAccount(profileName: string) {
     if (!settings || profileName === settings.profileName) {
@@ -167,8 +171,11 @@ export function App() {
   if (!settings) return <SettingsScreen onSave={applySettings} />
   if (editingSettings) return <SettingsScreen initial={settings} onSave={applySettings} onCancel={() => setEditingSettings(false)} />
 
+  const currentAccount = accounts.find((account) => account.profileName === settings.profileName)
+
   return (
-    <div class={`mx-auto flex min-h-dvh w-full max-w-[860px] ${chromeHidden ? 'chrome-hidden' : ''}`}>
+    <RelaySettingsContext.Provider value={settings}>
+    <div class={`mx-auto flex min-h-dvh w-full max-w-[860px] ${chromeHidden ? 'chrome-hidden' : ''}`} inert={composerOpen ? true : undefined}>
       <button class="skip-link" type="button" onClick={() => document.getElementById('main-content')?.focus()}>メインコンテンツへ移動</button>
       <Navigation accounts={accounts} currentProfile={settings.profileName} currentRoute={route} drawerOpen={drawerOpen} chromeHidden={chromeHidden} onCloseDrawer={closeDrawer} onOpenDrawer={() => setDrawerOpen(true)} onSelectAccount={selectAccount} onSettings={() => { closeDrawer(); setEditingSettings(true) }} />
       <div class="min-h-dvh w-full max-w-[600px] border-x border-line bg-canvas pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" inert={drawerOpen ? true : undefined}>
@@ -183,7 +190,16 @@ export function App() {
           </main>
         </PullToRefresh>
       </div>
+      <ComposeButton onClick={() => { closeDrawer(); setComposerOpen(true) }} />
     </div>
+    {composerOpen ? <Composer settings={settings} profile={currentAccount?.profile} onClose={closeComposer} onPosted={() => {
+      closeComposer()
+      setChromeHidden(false)
+      setRefreshToken((value) => value + 1)
+      navigate({ name: 'home' })
+      window.scrollTo(0, 0)
+    }} /> : null}
+    </RelaySettingsContext.Provider>
   )
 }
 
