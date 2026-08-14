@@ -1,3 +1,4 @@
+import type { JSX } from 'preact'
 import { useCallback, useEffect, useState } from 'preact/hooks'
 import { fetchListTimeline, fetchTimeline } from '../api/client'
 import { TimelineFeed } from '../components/TimelineFeed'
@@ -28,7 +29,7 @@ export function HomeScreen({ settings, selectedLists, refreshToken = 0 }: { sett
     <section>
       <h1 class="sr-only">ホーム</h1>
       <header class="mobile-top-chrome sticky top-0 z-20 border-b border-line bg-canvas/90 backdrop-blur-xl">
-        <div class="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="タイムラインの種類">
+        <div class="home-tabs-scroll flex overflow-x-auto" role="tablist" aria-label="タイムラインの種類" onWheel={scrollTabsHorizontally}>
           <Tab compact={selectedLists.length > 0} active={active === 'for-you'} onClick={() => changeTab('for-you')}>おすすめ</Tab>
           <Tab compact={selectedLists.length > 0} active={active === 'following'} onClick={() => changeTab('following')}>フォロー中</Tab>
           {selectedLists.map((list) => (
@@ -51,6 +52,13 @@ export function HomeScreen({ settings, selectedLists, refreshToken = 0 }: { sett
       ))}
     </section>
   )
+}
+
+function scrollTabsHorizontally(event: JSX.TargetedWheelEvent<HTMLDivElement>) {
+  const element = event.currentTarget
+  if (element.scrollWidth <= element.clientWidth || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return
+  event.preventDefault()
+  element.scrollLeft += event.deltaY
 }
 
 function ListTimelinePanel({ settings, list, refreshToken }: { settings: RelaySettings; list: TwitterList; refreshToken: number }) {

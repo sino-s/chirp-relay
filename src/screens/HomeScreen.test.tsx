@@ -28,4 +28,19 @@ describe('HomeScreen', () => {
     fireEvent.click(screen.getByRole('tab', { name: list.name }))
     expect(fetchListTimeline).toHaveBeenCalledTimes(1)
   })
+
+  it('turns a desktop mouse wheel into horizontal tab scrolling', () => {
+    vi.mocked(fetchTimeline).mockResolvedValue({ tweets: [] })
+    const lists = [1, 2, 3].map((index): TwitterList => ({ ...list, id: `list-${index}`, name: `リスト${index}` }))
+    render(<HomeScreen settings={settings} selectedLists={lists} />)
+    const tablist = screen.getByRole('tablist', { name: 'タイムラインの種類' })
+    Object.defineProperties(tablist, {
+      clientWidth: { configurable: true, value: 600 },
+      scrollWidth: { configurable: true, value: 900 }
+    })
+
+    fireEvent.wheel(tablist, { deltaX: 0, deltaY: 120 })
+
+    expect(tablist.scrollLeft).toBe(120)
+  })
 })

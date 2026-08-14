@@ -130,6 +130,27 @@ h1, h2, h3 { text-wrap: balance; scroll-margin-top: 5rem; }
 }
 .tweet-entity-link:hover { text-decoration: underline; }
 
+.home-tabs-scroll {
+  scrollbar-width: none;
+}
+.home-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 768px) {
+  .home-tabs-scroll {
+    scrollbar-color: var(--line) transparent;
+    scrollbar-width: thin;
+  }
+  .home-tabs-scroll::-webkit-scrollbar {
+    display: block;
+    height: 4px;
+  }
+  .home-tabs-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--line);
+  }
+}
+
 .mobile-top-chrome,
 .mobile-bottom-chrome {
   transition: opacity 180ms ease, transform 180ms ease;
