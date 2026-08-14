@@ -5,6 +5,7 @@ import { SearchIcon } from '../components/Icons'
 import { TimelineFeed } from '../components/TimelineFeed'
 import { UserCard } from '../components/UserCard'
 import { navigate, routeHref } from '../router'
+import { addSearchHistory, clearSearchHistory, loadSearchHistory } from '../search-history'
 import type { RelaySettings, SearchProduct, ViewerProfile } from '../types'
 
 const TABS: { product: SearchProduct; label: string }[] = [
@@ -16,13 +17,25 @@ const TABS: { product: SearchProduct; label: string }[] = [
 
 export function SearchScreen({ settings, query, product }: { settings: RelaySettings; query: string; product: SearchProduct }) {
   const [input, setInput] = useState(query)
+  const [history, setHistory] = useState<string[]>(() => loadSearchHistory(settings))
   useEffect(() => setInput(query), [query])
+  useEffect(() => setHistory(loadSearchHistory(settings)), [settings.baseUrl, settings.profileName])
   const loadTweets = useCallback((cursor?: string, signal?: AbortSignal) => searchTwitter(settings, query, product, cursor, signal), [product, query, settings])
 
   function submit(event: SubmitEvent) {
     event.preventDefault()
     const nextQuery = input.trim()
-    if (nextQuery) navigate({ name: 'search', query: nextQuery, product })
+    if (nextQuery) runSearch(nextQuery)
+  }
+
+  function runSearch(nextQuery: string) {
+    setHistory(addSearchHistory(settings, nextQuery))
+    navigate({ name: 'search', query: nextQuery, product })
+  }
+
+  function clearHistory() {
+    clearSearchHistory(settings)
+    setHistory([])
   }
 
   return (
@@ -39,12 +52,29 @@ export function SearchScreen({ settings, query, product }: { settings: RelaySett
           {TABS.map((tab) => <a key={tab.product} class={`relative grid h-11 place-items-center text-xs font-bold hover:bg-hover ${product === tab.product ? '' : 'text-muted'}`} href={routeHref({ name: 'search', query, product: tab.product })} role="tab" aria-selected={product === tab.product}>{tab.label}{product === tab.product ? <span class="absolute inset-x-1/4 bottom-0 h-1 rounded-full bg-accent" /> : null}</a>)}
         </div>
       </AppHeader>
-      {!query ? <div class="px-8 py-20 text-center"><SearchIcon class="mx-auto text-muted" size={38} /><h2 class="mt-4 text-xl font-extrabold">検索する</h2><p class="mt-2 text-sm text-muted">キーワード、アカウント、画像や動画を検索できます。</p></div> : product === 'people' ? (
+      {!query ? history.length > 0 ? <RecentSearches history={history} onSearch={runSearch} onClear={clearHistory} /> : <div class="px-8 py-20 text-center"><SearchIcon class="mx-auto text-muted" size={38} /><h2 class="mt-4 text-xl font-extrabold">検索する</h2><p class="mt-2 text-sm text-muted">キーワード、アカウント、画像や動画を検索できます。</p></div> : product === 'people' ? (
         <PeopleResults settings={settings} query={query} product={product} />
       ) : (
         <TimelineFeed loadPage={loadTweets} emptyMessage="検索結果がありません。" />
       )}
     </section>
+  )
+}
+
+function RecentSearches({ history, onSearch, onClear }: { history: string[]; onSearch: (query: string) => void; onClear: () => void }) {
+  return (
+    <div>
+      <div class="flex items-center justify-between border-b border-line px-4 py-3">
+        <h2 class="text-xl font-extrabold">最近の検索</h2>
+        <button class="text-sm font-bold text-accent hover:underline" type="button" onClick={onClear}>すべて消去</button>
+      </div>
+      {history.map((item) => (
+        <button key={item.toLocaleLowerCase()} class="flex min-h-14 w-full items-center gap-3 border-b border-line px-4 text-left transition-colors hover:bg-hover" type="button" onClick={() => onSearch(item)}>
+          <SearchIcon class="shrink-0 text-muted" size={19} />
+          <span class="min-w-0 truncate text-[15px] font-medium">{item}</span>
+        </button>
+      ))}
+    </div>
   )
 }
 
