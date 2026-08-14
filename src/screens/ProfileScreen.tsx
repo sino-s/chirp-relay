@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'preact/hooks'
 import { fetchUserProfile, fetchUserTweets, fetchViewer } from '../api/client'
 import { AppHeader } from '../components/AppHeader'
-import { CalendarIcon, WarningIcon } from '../components/Icons'
+import { CalendarIcon, LockIcon, WarningIcon } from '../components/Icons'
 import { TimelineFeed } from '../components/TimelineFeed'
 import type { RelaySettings, ViewerProfile } from '../types'
 
@@ -62,7 +62,7 @@ function ProfileHeader({ profile }: { profile: ViewerProfile }) {
         <div class="-mt-10 mb-3">
           {profile.avatarUrl ? <img class="size-20 rounded-full border-4 border-canvas bg-subtle" src={profile.avatarUrl.replace('_normal', '_200x200')} width="80" height="80" alt="" /> : <div class="size-20 rounded-full border-4 border-canvas bg-subtle" />}
         </div>
-        <h2 class="text-xl font-extrabold leading-6">{profile.name}</h2>
+        <h2 class="flex items-center gap-1.5 text-xl font-extrabold leading-6">{profile.name}{profile.protected ? <span class="text-muted" aria-label="非公開アカウント"><LockIcon size={17} /></span> : null}</h2>
         <p class="text-[15px] text-muted">@{profile.handle}</p>
         {profile.description ? <p class="mt-3 whitespace-pre-wrap break-words text-[15px] leading-5.5">{profile.description}</p> : null}
         {profile.joinedAt ? (

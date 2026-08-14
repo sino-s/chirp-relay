@@ -1,4 +1,4 @@
-import type { ConversationPage, NotificationItem, NotificationPage, SearchPage, TimelinePage, Tweet, TweetAuthor, TweetLink, TweetMedia, ViewerProfile } from '../types'
+import type { ConversationPage, NotificationItem, NotificationPage, SearchPage, TimelinePage, Tweet, TweetAuthor, TweetLink, TweetLinkPreview, TweetMedia, ViewerProfile } from '../types'
 
 type JsonObject = Record<string, unknown>
 
@@ -107,7 +107,8 @@ function parseUserAuthor(user: JsonObject): TweetAuthor | undefined {
       stringAt(user, 'avatar', 'image_url') ??
       stringAt(user, 'legacy', 'profile_image_url_https') ??
       '',
-    verified: booleanAt(user, 'is_blue_verified') || booleanAt(user, 'verification', 'verified')
+    verified: booleanAt(user, 'is_blue_verified') || booleanAt(user, 'verification', 'verified'),
+    protected: booleanAt(user, 'privacy', 'protected') || booleanAt(user, 'legacy', 'protected')
   }
 }
 
@@ -160,6 +161,89 @@ function parseMedia(legacy: JsonObject): TweetMedia[] {
   })
 }
 
+function cardBindingValues(card: JsonObject): Map<string, JsonObject> {
+  const values = card.binding_values
+  const bindings = new Map<string, JsonObject>()
+  if (!Array.isArray(values)) return bindings
+  for (const binding of values) {
+    if (!isObject(binding) || typeof binding.key !== 'string' || !isObject(binding.value)) continue
+    bindings.set(binding.key, binding.value)
+  }
+  return bindings
+}
+
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
+
+function parseUnifiedCard(value: string): TweetLinkPreview | undefined {
+  let unified: JsonObject
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!isObject(parsed)) return undefined
+    unified = parsed
+  } catch {
+    return undefined
+  }
+
+  const components = objectAt(unified, 'component_objects')
+  const destinations = objectAt(unified, 'destination_objects')
+  if (!components || !destinations) return undefined
+  const details = Object.values(components).find((item) => isObject(item) && item.type === 'details')
+  if (!isObject(details)) return undefined
+  const data = objectAt(details, 'data')
+  const destinationName = stringAt(data, 'destination')
+  const destination = destinationName ? destinations[destinationName] : undefined
+  const url = stringAt(destination, 'data', 'url_data', 'url')
+  const title = stringAt(data, 'title', 'content')
+  if (!url || !title) return undefined
+
+  const mediaComponent = Object.values(components).find((item) => isObject(item) && item.type === 'media')
+  const mediaId = stringAt(mediaComponent, 'data', 'id')
+  const media = mediaId ? objectAt(unified, 'media_entities', mediaId) : undefined
+  return {
+    url,
+    title,
+    domain: stringAt(data, 'subtitle', 'content') ?? stringAt(destination, 'data', 'url_data', 'vanity') ?? hostname(url),
+    imageUrl: stringAt(media, 'media_url_https'),
+    imageWidth: numberAt(media, 'original_info', 'width') || undefined,
+    imageHeight: numberAt(media, 'original_info', 'height') || undefined
+  }
+}
+
+function parseLinkPreview(result: JsonObject, links: TweetLink[]): TweetLinkPreview | undefined {
+  const card = objectAt(result, 'card', 'legacy')
+  if (!card) return undefined
+  const bindings = cardBindingValues(card)
+  const unifiedValue = stringAt(bindings.get('unified_card'), 'string_value')
+  if (unifiedValue) return parseUnifiedCard(unifiedValue)
+
+  const title = stringAt(bindings.get('title'), 'string_value')
+  const cardUrl = stringAt(bindings.get('card_url'), 'string_value') ?? stringAt(card, 'url')
+  if (!title || !cardUrl) return undefined
+  const link = links.find((item) => item.url === cardUrl)
+  const url = link?.expandedUrl ?? cardUrl
+  const imageKeys = ['summary_photo_image_large', 'player_image_large', 'thumbnail_image_large', 'summary_photo_image', 'player_image', 'thumbnail_image']
+  let image: JsonObject | undefined
+  for (const key of imageKeys) {
+    image = objectAt(bindings.get(key), 'image_value')
+    if (image) break
+  }
+  return {
+    url,
+    title,
+    domain: stringAt(bindings.get('vanity_url'), 'string_value') ?? stringAt(bindings.get('domain'), 'string_value') ?? hostname(url),
+    description: stringAt(bindings.get('description'), 'string_value'),
+    imageUrl: stringAt(image, 'url'),
+    imageWidth: numberAt(image, 'width') || undefined,
+    imageHeight: numberAt(image, 'height') || undefined
+  }
+}
+
 function cleanText(text: string, media: TweetMedia[], links: TweetLink[], legacy: JsonObject): string {
   let cleaned = text
   const rawMedia = objectAt(legacy, 'extended_entities')?.media
@@ -210,6 +294,7 @@ export function parseTweetResult(result: JsonObject, depth = 0): Tweet | undefin
     },
     media,
     links,
+    linkPreview: parseLinkPreview(source, links),
     quotedTweet: quotedSource ? parseTweetResult(quotedSource, depth + 1) : undefined,
     repostedBy: wrapperAuthor?.name,
     inReplyToId: stringAt(legacy, 'in_reply_to_status_id_str'),
@@ -269,7 +354,8 @@ function parseUserProfileResult(result: JsonObject): ViewerProfile {
     followers: numberAt(result, 'legacy', 'followers_count'),
     following: numberAt(result, 'legacy', 'friends_count'),
     posts: numberAt(result, 'legacy', 'statuses_count'),
-    joinedAt: stringAt(result, 'core', 'created_at')
+    joinedAt: stringAt(result, 'core', 'created_at'),
+    protected: booleanAt(result, 'privacy', 'protected') || booleanAt(result, 'legacy', 'protected')
   }
 }
 

@@ -94,3 +94,7 @@ export function ChevronRightIcon(props: IconProps): JSX.Element {
 export function PlayIcon(props: IconProps): JSX.Element {
   return <Icon {...props}><path fill="currentColor" stroke="none" d="m8 5 11 7-11 7z" /></Icon>
 }
+
+export function LockIcon(props: IconProps): JSX.Element {
+  return <Icon {...props}><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></Icon>
+}

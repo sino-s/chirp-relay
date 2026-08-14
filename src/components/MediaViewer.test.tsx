@@ -35,6 +35,7 @@ describe('MediaViewer', () => {
 
   it('removes the media parameter when the close button is pressed', () => {
     render(<MediaViewer tweet={tweet} initialIndex={0} />)
+    expect(screen.getByRole('img', { name: '投稿画像 1' })).toHaveAttribute('src', 'https://img.example/photo.jpg?name=orig')
     fireEvent.click(screen.getByRole('button', { name: 'メディアを閉じる' }))
     expect(window.location.hash).toBe('#/tweet/123')
   })

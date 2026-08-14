@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { canGoBackInApp, navigate } from '../router'
+import { twitterImageUrl } from '../media'
 import type { Tweet, TweetMedia } from '../types'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from './Icons'
 
@@ -70,7 +71,7 @@ export function MediaViewer({ tweet, initialIndex }: { tweet: Tweet; initialInde
         {tweet.media.map((media, index) => (
           <div key={media.id} class="grid min-w-full snap-center place-items-center p-2 pt-16 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             {media.type === 'photo' || !media.playbackUrl ? (
-              <img class="max-h-full max-w-full object-contain" src={`${media.previewUrl}?name=orig`} width={media.width ?? 1200} height={media.height ?? 675} alt={media.altText ?? `投稿画像 ${index + 1}`} />
+              <img class="max-h-full max-w-full object-contain" src={twitterImageUrl(media.previewUrl, index === activeIndex ? 'orig' : 'small')} width={media.width ?? 1200} height={media.height ?? 675} alt={media.altText ?? `投稿画像 ${index + 1}`} />
             ) : <VideoPlayer media={media} />}
           </div>
         ))}
@@ -99,7 +100,7 @@ function VideoPlayer({ media }: { media: TweetMedia }) {
       key={sources[sourceIndex]}
       class="max-h-full max-w-full"
       src={sources[sourceIndex]}
-      poster={`${media.previewUrl}?name=large`}
+      poster={twitterImageUrl(media.previewUrl, 'large')}
       controls
       playsInline
       autoPlay

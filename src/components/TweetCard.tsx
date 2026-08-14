@@ -1,7 +1,8 @@
 import type { JSX } from 'preact'
 import { routeHref } from '../router'
 import type { Tweet } from '../types'
-import { HeartIcon, PlayIcon, ReplyIcon, RepostIcon, ViewsIcon } from './Icons'
+import { twitterImageUrl } from '../media'
+import { HeartIcon, LockIcon, PlayIcon, ReplyIcon, RepostIcon, ViewsIcon } from './Icons'
 import { TweetText } from './TweetText'
 
 function compactNumber(value: number): string {
@@ -37,7 +38,7 @@ function MediaGrid({ tweet }: { tweet: Tweet }): JSX.Element | null {
             <a href={href} class={`relative z-20 ${spanning}`} aria-label={`画像 ${index + 1} を拡大表示`}>
               <img
                 class={mediaClass}
-                src={`${media.previewUrl}?name=medium`}
+                src={twitterImageUrl(media.previewUrl, 'small')}
                 alt={media.altText ?? `投稿画像 ${index + 1}`}
                 width={media.width ?? 1200}
                 height={media.height ?? 675}
@@ -49,7 +50,7 @@ function MediaGrid({ tweet }: { tweet: Tweet }): JSX.Element | null {
         }
         return (
           <a href={href} class={`relative z-20 ${spanning}`} aria-label="動画を再生">
-            <img class={mediaClass} src={`${media.previewUrl}?name=medium`} width={media.width ?? 1200} height={media.height ?? 675} alt="動画のプレビュー" loading="lazy" />
+            <img class={mediaClass} src={twitterImageUrl(media.previewUrl, 'small')} width={media.width ?? 1200} height={media.height ?? 675} alt="動画のプレビュー" loading="lazy" />
             <span class="absolute inset-0 grid place-items-center"><span class="grid size-14 place-items-center rounded-full bg-black/65 text-white"><PlayIcon size={30} /></span></span>
           </a>
         )
@@ -65,13 +66,29 @@ function QuoteCard({ tweet }: { tweet: Tweet }): JSX.Element {
       <div class="flex min-w-0 items-center gap-2 text-sm">
         {tweet.author.avatarUrl ? <img src={tweet.author.avatarUrl} width="20" height="20" class="size-5 rounded-full" alt="" /> : null}
         <span class="truncate font-bold">{tweet.author.name}</span>
+        {tweet.author.protected ? <span class="shrink-0 text-muted" aria-label="非公開アカウント"><LockIcon size={14} /></span> : null}
         <span class="truncate text-muted">@{tweet.author.handle}</span>
       </div>
       <p class="mt-1 whitespace-pre-wrap break-words text-[15px] leading-5"><TweetText text={tweet.text} links={tweet.links} /></p>
       {tweet.media[0] ? (
-        <img class="mt-2 max-h-48 w-full rounded-xl object-cover" src={`${tweet.media[0].previewUrl}?name=small`} alt="引用投稿の画像" width={tweet.media[0].width ?? 600} height={tweet.media[0].height ?? 338} loading="lazy" />
+        <img class="mt-2 max-h-48 w-full rounded-xl object-cover" src={twitterImageUrl(tweet.media[0].previewUrl, 'small')} alt="引用投稿の画像" width={tweet.media[0].width ?? 600} height={tweet.media[0].height ?? 338} loading="lazy" />
       ) : null}
     </div>
+  )
+}
+
+function LinkPreview({ tweet }: { tweet: Tweet }): JSX.Element | null {
+  const preview = tweet.linkPreview
+  if (!preview) return null
+  return (
+    <a class="relative z-20 mt-3 block overflow-hidden rounded-2xl border border-line transition-colors hover:bg-hover" href={preview.url} target="_blank" rel="noopener noreferrer" aria-label={`${preview.title}を開く`}>
+      {preview.imageUrl ? <img class="aspect-[1.91/1] w-full bg-subtle object-cover" src={twitterImageUrl(preview.imageUrl, 'small')} width={preview.imageWidth ?? 680} height={preview.imageHeight ?? 356} alt="" loading="lazy" decoding="async" /> : null}
+      <div class="px-3 py-2.5 text-[15px] leading-5">
+        <p class="truncate text-muted">{preview.domain}</p>
+        <p class="line-clamp-2 font-medium text-primary">{preview.title}</p>
+        {preview.description ? <p class="mt-0.5 line-clamp-2 text-muted">{preview.description}</p> : null}
+      </div>
+    </a>
   )
 }
 
@@ -98,6 +115,7 @@ export function TweetCard({ tweet, detail = false }: { tweet: Tweet; detail?: bo
               {tweet.author.name}
             </a>
             {tweet.author.verified ? <span class="text-accent" aria-label="認証済み">◆</span> : null}
+            {tweet.author.protected ? <span class="shrink-0 text-muted" aria-label="非公開アカウント"><LockIcon size={14} /></span> : null}
             <span class="truncate text-muted">@{tweet.author.handle}</span>
             <span aria-hidden="true" class="text-muted">·</span>
             <a class="relative z-20 shrink-0 text-muted hover:underline" href={routeHref({ name: 'tweet', tweetId: tweet.id })}>
@@ -108,6 +126,7 @@ export function TweetCard({ tweet, detail = false }: { tweet: Tweet; detail?: bo
             <TweetText text={tweet.text} links={tweet.links} />
           </p>
           <MediaGrid tweet={tweet} />
+          <LinkPreview tweet={tweet} />
           {tweet.quotedTweet ? <QuoteCard tweet={tweet.quotedTweet} /> : null}
           <div class="mt-3 flex max-w-md items-center justify-between text-muted" aria-label="投稿の反応">
             <span class="metric"><ReplyIcon size={18} /><span>{compactNumber(tweet.metrics.replies)}</span></span>

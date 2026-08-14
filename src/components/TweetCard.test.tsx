@@ -31,5 +31,23 @@ describe('TweetCard', () => {
     })} />)
     expect(screen.getByRole('link', { name: '#photo' })).toHaveAttribute('href', '#/search?q=%23photo&tab=top')
     expect(screen.getByRole('link', { name: '画像 1 を拡大表示' })).toHaveAttribute('href', '#/tweet/123?media=0')
+    expect(screen.getByRole('img', { name: '投稿画像 1' })).toHaveAttribute('src', 'https://img.example/photo.jpg?name=small')
+  })
+
+  it('marks protected authors and renders a URL preview', () => {
+    render(<TweetCard tweet={makeTweet({
+      author: { id: 'u1', name: 'Private User', handle: 'private', avatarUrl: '', verified: false, protected: true },
+      linkPreview: {
+        url: 'https://example.com/article',
+        title: 'Article title',
+        domain: 'example.com',
+        description: 'Article description',
+        imageUrl: 'https://pbs.twimg.com/card.jpg'
+      }
+    })} />)
+
+    expect(screen.getByLabelText('非公開アカウント')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Article titleを開く' })).toHaveAttribute('href', 'https://example.com/article')
+    expect(screen.getByRole('img', { name: '' })).toHaveAttribute('src', 'https://pbs.twimg.com/card.jpg?name=small')
   })
 })

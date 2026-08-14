@@ -90,14 +90,71 @@ describe('parseTimeline', () => {
       links: [{ expandedUrl: 'https://example.com/long-post', displayUrl: 'example.com/long-post' }]
     })
   })
+
+  it('reads protected authors and standard URL cards', () => {
+    const result = tweet('13', 'watch https://t.co/video')
+    Object.assign(result.core.user_results.result, { privacy: { protected: true } })
+    Object.assign(result.legacy, { entities: { urls: [{
+      url: 'https://t.co/video',
+      expanded_url: 'https://example.com/watch',
+      display_url: 'example.com/watch'
+    }] } })
+    Object.assign(result, { card: { legacy: {
+      binding_values: [
+        { key: 'title', value: { string_value: 'Video title' } },
+        { key: 'description', value: { string_value: 'Video description' } },
+        { key: 'vanity_url', value: { string_value: 'example.com' } },
+        { key: 'card_url', value: { string_value: 'https://t.co/video' } },
+        { key: 'player_image_large', value: { image_value: { url: 'https://pbs.twimg.com/card.jpg', width: 640, height: 360 } } }
+      ]
+    } } })
+
+    const page = parseTimeline({ entries: [{ entryId: 'tweet-13', content: { tweet_results: { result } } }] })
+
+    expect(page.tweets[0]).toMatchObject({
+      author: { protected: true },
+      linkPreview: {
+        url: 'https://example.com/watch',
+        title: 'Video title',
+        description: 'Video description',
+        domain: 'example.com',
+        imageUrl: 'https://pbs.twimg.com/card.jpg'
+      }
+    })
+  })
+
+  it('reads URL previews from unified cards', () => {
+    const result = tweet('14', 'article')
+    const unified = {
+      component_objects: {
+        details: { type: 'details', data: { title: { content: 'Article title' }, subtitle: { content: 'example.org' }, destination: 'browser' } },
+        media: { type: 'media', data: { id: 'image' } }
+      },
+      destination_objects: { browser: { data: { url_data: { url: 'https://example.org/article' } } } },
+      media_entities: { image: { media_url_https: 'https://pbs.twimg.com/article.jpg', original_info: { width: 1200, height: 630 } } }
+    }
+    Object.assign(result, { card: { legacy: { binding_values: [{ key: 'unified_card', value: { string_value: JSON.stringify(unified) } }] } } })
+
+    const page = parseTimeline({ entries: [{ entryId: 'tweet-14', content: { tweet_results: { result } } }] })
+
+    expect(page.tweets[0]?.linkPreview).toEqual({
+      url: 'https://example.org/article',
+      title: 'Article title',
+      domain: 'example.org',
+      imageUrl: 'https://pbs.twimg.com/article.jpg',
+      imageWidth: 1200,
+      imageHeight: 630
+    })
+  })
 })
 
 describe('parseViewer', () => {
   it('normalizes the signed-in viewer', () => {
     const result = user('viewer', 'me', 'My Name')
     result.legacy = { description: 'bio', followers_count: 12, friends_count: 3, statuses_count: 99 }
+    Object.assign(result, { privacy: { protected: true } })
     const profile = parseViewer({ data: { viewer: { user_results: { result } } } })
-    expect(profile).toMatchObject({ id: 'viewer', handle: 'me', followers: 12, following: 3, posts: 99 })
+    expect(profile).toMatchObject({ id: 'viewer', handle: 'me', followers: 12, following: 3, posts: 99, protected: true })
   })
 })
 

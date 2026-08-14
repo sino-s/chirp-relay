@@ -14,6 +14,7 @@ export interface ViewerProfile {
   following: number
   posts: number
   joinedAt?: string
+  protected?: boolean
 }
 
 export interface TweetAuthor {
@@ -22,6 +23,7 @@ export interface TweetAuthor {
   handle: string
   avatarUrl: string
   verified: boolean
+  protected?: boolean
 }
 
 export interface TweetMedia {
@@ -48,6 +50,16 @@ export interface TweetLink {
   displayUrl: string
 }
 
+export interface TweetLinkPreview {
+  url: string
+  title: string
+  domain: string
+  description?: string
+  imageUrl?: string
+  imageWidth?: number
+  imageHeight?: number
+}
+
 export interface Tweet {
   id: string
   text: string
@@ -56,6 +68,7 @@ export interface Tweet {
   metrics: TweetMetrics
   media: TweetMedia[]
   links: TweetLink[]
+  linkPreview?: TweetLinkPreview
   quotedTweet?: Tweet
   repostedBy?: string
   inReplyToId?: string
