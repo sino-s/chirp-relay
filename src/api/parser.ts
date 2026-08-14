@@ -1,4 +1,4 @@
-import type { ConversationPage, NotificationItem, NotificationPage, SearchPage, TimelinePage, Tweet, TweetAuthor, TweetLink, TweetLinkPreview, TweetMedia, ViewerProfile } from '../types'
+import type { ConversationPage, NotificationItem, NotificationPage, SearchPage, TimelinePage, Tweet, TweetAuthor, TweetLink, TweetLinkPreview, TweetMedia, TwitterList, TwitterListPage, ViewerProfile } from '../types'
 
 type JsonObject = Record<string, unknown>
 
@@ -334,6 +334,33 @@ export function parseTimeline(value: unknown): TimelinePage {
     }
   }
   return { tweets: [...byId.values()], nextCursor: findBottomCursor(value) }
+}
+
+export function parseTwitterLists(value: unknown): TwitterListPage {
+  const byId = new Map<string, TwitterList>()
+  visit(value, (object) => {
+    const list = object.list
+    if (!isObject(list) || typeof list.id_str !== 'string' || typeof list.name !== 'string') return
+    const ownerResult = objectAt(list, 'user_results', 'result')
+    const ownerHandle = stringAt(ownerResult, 'core', 'screen_name')
+    const ownerName = stringAt(ownerResult, 'core', 'name')
+    byId.set(list.id_str, {
+      id: list.id_str,
+      name: list.name,
+      description: typeof list.description === 'string' ? list.description : '',
+      memberCount: numberAt(list, 'member_count'),
+      subscriberCount: numberAt(list, 'subscriber_count'),
+      private: list.mode === 'Private',
+      pinned: list.pinning === true,
+      bannerUrl: stringAt(list, 'default_banner_media', 'media_info', 'original_img_url'),
+      owner: ownerHandle && ownerName ? {
+        handle: ownerHandle,
+        name: ownerName,
+        avatarUrl: stringAt(ownerResult, 'avatar', 'image_url') ?? ''
+      } : undefined
+    })
+  })
+  return { lists: [...byId.values()], nextCursor: findBottomCursor(value) }
 }
 
 export function parseViewer(value: unknown): ViewerProfile {

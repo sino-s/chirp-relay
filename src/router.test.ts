@@ -26,6 +26,11 @@ describe('router', () => {
     expect(parseHash(href)).toEqual({ name: 'user', handle: 'example' })
   })
 
+  it('round-trips the list overview route', () => {
+    expect(routeHref({ name: 'lists' })).toBe('#/lists')
+    expect(parseHash('#/lists')).toEqual({ name: 'lists' })
+  })
+
   it('shares scroll position between a post and its media viewer', () => {
     expect(routeScrollKey({ name: 'tweet', tweetId: '123' })).toBe('tweet:123')
     expect(routeScrollKey({ name: 'tweet', tweetId: '123', media: 2 })).toBe('tweet:123')

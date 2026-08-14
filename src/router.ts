@@ -8,6 +8,7 @@ export type AppRoute =
   | { name: 'user'; handle: string }
   | { name: 'tweet'; tweetId: string; media?: number }
   | { name: 'notifications'; tab: NotificationTab }
+  | { name: 'lists' }
   | { name: 'search'; query: string; product: SearchProduct }
 
 const SEARCH_PRODUCTS = new Set<SearchProduct>(['top', 'latest', 'people', 'media'])
@@ -32,6 +33,7 @@ export function parseHash(hash = window.location.hash): AppRoute {
   if (segments[0] === 'notifications') {
     return { name: 'notifications', tab: params.get('tab') === 'mentions' ? 'mentions' : 'all' }
   }
+  if (segments[0] === 'lists') return { name: 'lists' }
   if (segments[0] === 'search') {
     const requestedProduct = params.get('tab') as SearchProduct
     return {
@@ -44,7 +46,7 @@ export function parseHash(hash = window.location.hash): AppRoute {
 }
 
 export function routeHref(route: AppRoute): string {
-  if (route.name === 'home' || route.name === 'profile') return `#/${route.name}`
+  if (route.name === 'home' || route.name === 'profile' || route.name === 'lists') return `#/${route.name}`
   if (route.name === 'user') return `#/user/${encodeURIComponent(route.handle)}`
   if (route.name === 'tweet') {
     const media = route.media === undefined ? '' : `?media=${route.media}`

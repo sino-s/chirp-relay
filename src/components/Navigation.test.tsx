@@ -24,6 +24,12 @@ describe('Navigation', () => {
     expect(within(navigation).getByRole('link', { name: 'プロフィール' })).toHaveAttribute('href', '#/profile')
   })
 
+  it('includes lists in the side menu', () => {
+    render(<Navigation accounts={accounts} currentProfile="one" currentRoute={{ name: 'home' }} drawerOpen chromeHidden={false} onCloseDrawer={() => undefined} onOpenDrawer={() => undefined} onSelectAccount={() => undefined} onSettings={() => undefined} />)
+    expect(screen.getAllByRole('link', { name: 'リスト' })).toHaveLength(2)
+    expect(screen.getAllByRole('link', { name: 'リスト' })[0]).toHaveAttribute('href', '#/lists')
+  })
+
   it('opens the drawer from the bottom profile icon when already on the profile screen', () => {
     const onOpenDrawer = vi.fn()
     render(<Navigation accounts={accounts} currentProfile="one" currentRoute={{ name: 'profile' }} drawerOpen={false} chromeHidden={false} onCloseDrawer={() => undefined} onOpenDrawer={onOpenDrawer} onSelectAccount={() => undefined} onSettings={() => undefined} />)

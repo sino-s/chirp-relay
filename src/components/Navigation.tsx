@@ -2,7 +2,7 @@ import type { FunctionComponent } from 'preact'
 import { useEffect, useRef } from 'preact/hooks'
 import { routeHref, type AppRoute } from '../router'
 import type { ViewerProfile } from '../types'
-import { BellIcon, CloseIcon, HomeIcon, SearchIcon, SettingsIcon, UserIcon } from './Icons'
+import { BellIcon, CloseIcon, HomeIcon, ListIcon, SearchIcon, SettingsIcon, UserIcon } from './Icons'
 
 export interface RelayAccount {
   profileName: string
@@ -25,6 +25,7 @@ const MENU_ITEMS: { route: AppRoute; label: string; icon: FunctionComponent<{ si
   { route: { name: 'home' }, label: 'ホーム', icon: HomeIcon },
   { route: { name: 'search', query: '', product: 'top' }, label: '検索', icon: SearchIcon },
   { route: { name: 'notifications', tab: 'all' }, label: '通知', icon: BellIcon },
+  { route: { name: 'lists' }, label: 'リスト', icon: ListIcon },
   { route: { name: 'profile' }, label: 'プロフィール', icon: UserIcon }
 ]
 

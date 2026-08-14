@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createTweet, fetchUserLikes, fetchUserMedia, setTweetLiked, setTweetRetweeted } from './client'
+import { createTweet, fetchListTimeline, fetchTwitterLists, fetchUserLikes, fetchUserMedia, setTweetLiked, setTweetRetweeted } from './client'
 
 const settings = { baseUrl: 'http://relay.example', profileName: 'account-one' }
 
@@ -64,5 +64,32 @@ describe('relay write operations', () => {
       { userId: 'user-1', count: 20, includePromotedContent: false, withClientEventToken: false, withBirdwatchNotes: false, withVoice: true },
       { userId: 'user-1', count: 20, includePromotedContent: false, withClientEventToken: false, withBirdwatchNotes: false, withVoice: true, cursor: 'next' }
     ])
+  })
+})
+
+describe('list operations', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('accepts usable list data when optional banner fields return GraphQL errors', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({
+      data: { entries: [{ entryId: 'list-1', content: { itemContent: { list: { id_str: '1', name: 'One', description: '', member_count: 1, subscriber_count: 0, mode: 'Public', pinning: false } } } }] },
+      errors: [{ message: 'default banner is unavailable' }]
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(fetchTwitterLists(settings, 'user-1', 'next')).resolves.toMatchObject({ lists: [{ id: '1', name: 'One' }] })
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    expect(url.pathname.split('/').at(-1)).toBe('CombinedLists')
+    expect(JSON.parse(String(url.searchParams.get('variables')))).toEqual({ userId: 'user-1', count: 100, cursor: 'next' })
+  })
+
+  it('requests a list timeline with its list id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ entries: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await fetchListTimeline(settings, 'list-1')
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    expect(url.pathname.split('/').at(-1)).toBe('ListLatestTweetsTimeline')
+    expect(JSON.parse(String(url.searchParams.get('variables')))).toEqual({ listId: 'list-1', count: 40 })
   })
 })

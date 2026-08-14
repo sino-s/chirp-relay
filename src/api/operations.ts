@@ -117,6 +117,14 @@ export const OPERATIONS = {
     queryId: 'v8D8YuUcH9097nKOVvRPgA',
     features: TIMELINE_FEATURES
   },
+  combinedLists: {
+    path: '/graphql/TyLzpBAxtoCsJjWKKHTGZQ/CombinedLists',
+    features: TIMELINE_FEATURES
+  },
+  listTimeline: {
+    path: '/graphql/K77PSxWq_St4HLusAV9nVg/ListLatestTweetsTimeline',
+    features: TIMELINE_FEATURES
+  },
   userTweets: {
     path: '/graphql/PNd0vlufvrcIwrAnBYKE9g/UserTweets',
     features: TIMELINE_FEATURES,

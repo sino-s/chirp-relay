@@ -6,19 +6,23 @@ import { PullToRefresh } from './components/PullToRefresh'
 import { SettingsScreen } from './components/SettingsScreen'
 import { ensureAppHistoryEntry, markAppHistoryEntry, navigate, parseHash, routeScrollKey, type AppRoute } from './router'
 import { HomeScreen } from './screens/HomeScreen'
+import { ListsScreen } from './screens/ListsScreen'
 import { NotificationsScreen } from './screens/NotificationsScreen'
 import { ProfileScreen } from './screens/ProfileScreen'
 import { SearchScreen } from './screens/SearchScreen'
 import { TweetScreen } from './screens/TweetScreen'
 import { loadSettings, saveSettings } from './settings'
+import { loadSelectedLists, saveSelectedLists } from './list-preferences'
 import { RelaySettingsContext } from './relay-context'
-import type { RelaySettings } from './types'
+import type { RelaySettings, TwitterList } from './types'
 
 export function App() {
   const [settings, setSettings] = useState<RelaySettings | undefined>(() => loadSettings())
   const [route, setRoute] = useState<AppRoute>(parseHash)
   const [profileVisited, setProfileVisited] = useState(parseHash().name === 'profile')
   const [notificationsVisited, setNotificationsVisited] = useState(parseHash().name === 'notifications')
+  const [listsVisited, setListsVisited] = useState(parseHash().name === 'lists')
+  const [selectedLists, setSelectedLists] = useState<TwitterList[]>(() => settings ? loadSelectedLists(settings) : [])
   const [editingSettings, setEditingSettings] = useState(false)
   const [accounts, setAccounts] = useState<RelayAccount[]>([])
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -45,6 +49,7 @@ export function App() {
       setRoute(next)
       if (next.name === 'profile') setProfileVisited(true)
       if (next.name === 'notifications') setNotificationsVisited(true)
+      if (next.name === 'lists') setListsVisited(true)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => {
@@ -92,6 +97,10 @@ export function App() {
     })
     return () => controller.abort()
   }, [settings])
+
+  useEffect(() => {
+    if (settings) setSelectedLists(loadSelectedLists(settings))
+  }, [settings?.baseUrl, settings?.profileName])
 
   useEffect(() => {
     let lastY = window.scrollY
@@ -149,6 +158,8 @@ export function App() {
 
   function applySettings(next: RelaySettings) {
     saveSettings(next)
+    setSelectedLists(loadSelectedLists(next))
+    setAccounts([])
     setSettings(next)
     setEditingSettings(false)
   }
@@ -163,6 +174,7 @@ export function App() {
     }
     const next = { ...settings, profileName }
     saveSettings(next)
+    setSelectedLists(loadSelectedLists(next))
     setSettings(next)
     setRefreshToken((value) => value + 1)
     scrollPositionsRef.current.clear()
@@ -175,6 +187,17 @@ export function App() {
 
   const currentAccount = accounts.find((account) => account.profileName === settings.profileName)
   const notificationTab = route.name === 'notifications' ? route.tab : 'all'
+  const activeSettings = settings
+
+  function toggleList(list: TwitterList) {
+    setSelectedLists((current) => {
+      const next = current.some((item) => item.id === list.id)
+        ? current.filter((item) => item.id !== list.id)
+        : [...current, list]
+      saveSelectedLists(activeSettings, next)
+      return next
+    })
+  }
 
   return (
     <RelaySettingsContext.Provider value={settings}>
@@ -184,11 +207,12 @@ export function App() {
       <div class="min-h-dvh w-full max-w-[600px] border-x border-line bg-canvas pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" inert={drawerOpen ? true : undefined}>
         <PullToRefresh onRefresh={() => { setChromeHidden(false); setRefreshToken((value) => value + 1); window.scrollTo(0, 0) }}>
           <main id="main-content" tabIndex={-1}>
-            <div hidden={route.name !== 'home'}><HomeScreen settings={settings} refreshToken={refreshToken} /></div>
+            <div hidden={route.name !== 'home'}><HomeScreen settings={settings} selectedLists={selectedLists} refreshToken={refreshToken} /></div>
             {profileVisited ? <div hidden={route.name !== 'profile'}><ProfileScreen settings={settings} refreshToken={refreshToken} /></div> : null}
             {route.name === 'user' ? <ProfileScreen key={`${route.handle}:${refreshToken}`} settings={settings} userHandle={route.handle} onBack={() => goBack()} /> : null}
             {route.name === 'tweet' ? <TweetScreen key={`${route.tweetId}:${refreshToken}`} settings={settings} tweetId={route.tweetId} media={route.media} /> : null}
             {notificationsVisited ? <div hidden={route.name !== 'notifications'}><NotificationsScreen settings={settings} tab={notificationTab} refreshToken={refreshToken} /></div> : null}
+            {listsVisited ? <div hidden={route.name !== 'lists'}><ListsScreen settings={settings} viewerId={currentAccount?.profile?.id} selectedLists={selectedLists} onToggle={toggleList} refreshToken={refreshToken} /></div> : null}
             {route.name === 'search' ? <SearchScreen key={`${route.query}:${route.product}:${refreshToken}`} settings={settings} query={route.query} product={route.product} /> : null}
           </main>
         </PullToRefresh>

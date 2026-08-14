@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseConversation, parseNotifications, parseSearch, parseTimeline, parseViewer } from './parser'
+import { parseConversation, parseNotifications, parseSearch, parseTimeline, parseTwitterLists, parseViewer } from './parser'
 
 function user(id: string, handle: string, name: string) {
   return {
@@ -167,6 +167,40 @@ describe('parseViewer', () => {
     Object.assign(result, { privacy: { protected: true } })
     const profile = parseViewer({ data: { viewer: { user_results: { result } } } })
     expect(profile).toMatchObject({ id: 'viewer', handle: 'me', followers: 12, following: 3, posts: 99, protected: true })
+  })
+})
+
+describe('parseTwitterLists', () => {
+  it('normalizes list metadata, ownership and pagination', () => {
+    const value = { entries: [
+      { entryId: 'list-1', content: { itemContent: { list: {
+        id_str: 'list-1',
+        name: 'Friends',
+        description: 'People I know',
+        member_count: 12,
+        subscriber_count: 3,
+        mode: 'Private',
+        pinning: true,
+        default_banner_media: { media_info: { original_img_url: 'https://img.example/list.jpg' } },
+        user_results: { result: user('owner', 'me', 'My Name') }
+      } } } },
+      { entryId: 'cursor-bottom', content: { value: 'next-lists', cursorType: 'Bottom' } }
+    ] }
+
+    expect(parseTwitterLists(value)).toEqual({
+      lists: [{
+        id: 'list-1',
+        name: 'Friends',
+        description: 'People I know',
+        memberCount: 12,
+        subscriberCount: 3,
+        private: true,
+        pinned: true,
+        bannerUrl: 'https://img.example/list.jpg',
+        owner: { name: 'My Name', handle: 'me', avatarUrl: 'https://img.example/me.jpg' }
+      }],
+      nextCursor: 'next-lists'
+    })
   })
 })
 

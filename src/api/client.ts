@@ -1,6 +1,6 @@
-import type { ConversationPage, NotificationPage, RelaySettings, SearchPage, SearchProduct, TimelineKind, TimelinePage, ViewerProfile } from '../types'
+import type { ConversationPage, NotificationPage, RelaySettings, SearchPage, SearchProduct, TimelineKind, TimelinePage, TwitterListPage, ViewerProfile } from '../types'
 import { OPERATIONS } from './operations'
-import { parseConversation, parseNotifications, parseSearch, parseTimeline, parseUserProfile, parseViewer } from './parser'
+import { parseConversation, parseNotifications, parseSearch, parseTimeline, parseTwitterLists, parseUserProfile, parseViewer } from './parser'
 
 interface GraphqlError {
   message?: string
@@ -14,10 +14,10 @@ function baseHeaders(settings: RelaySettings): HeadersInit {
   }
 }
 
-async function readJson(response: Response): Promise<unknown> {
+async function readJson(response: Response, allowPartialData = false): Promise<unknown> {
   if (!response.ok) throw new Error(`relay が HTTP ${response.status} を返しました。`)
-  const body = await response.json() as { errors?: GraphqlError[] }
-  if (Array.isArray(body.errors) && body.errors.length > 0) {
+  const body = await response.json() as { data?: unknown; errors?: GraphqlError[] }
+  if (Array.isArray(body.errors) && body.errors.length > 0 && !(allowPartialData && body.data !== undefined)) {
     throw new Error(body.errors[0]?.message ?? 'Twitter API からエラーが返されました。')
   }
   return body
@@ -27,13 +27,14 @@ async function graphqlGet(
   settings: RelaySettings,
   operation: { path: string; features: object; fieldToggles?: object },
   variables: object,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  allowPartialData = false
 ): Promise<unknown> {
   const url = new URL(`${settings.baseUrl}/i/api${operation.path}`)
   url.searchParams.set('variables', JSON.stringify(variables))
   url.searchParams.set('features', JSON.stringify(operation.features))
   if (operation.fieldToggles) url.searchParams.set('fieldToggles', JSON.stringify(operation.fieldToggles))
-  return readJson(await fetch(url, { headers: baseHeaders(settings), signal }))
+  return readJson(await fetch(url, { headers: baseHeaders(settings), signal }), allowPartialData)
 }
 
 async function graphqlPost(
@@ -116,6 +117,20 @@ export async function fetchTimeline(
   else variables.enableRanking = false
   if (cursor) variables.cursor = cursor
   const value = await graphqlPost(settings, operation, variables, signal)
+  return parseTimeline(value)
+}
+
+export async function fetchTwitterLists(settings: RelaySettings, userId: string, cursor?: string, signal?: AbortSignal): Promise<TwitterListPage> {
+  const variables: Record<string, unknown> = { userId, count: 100 }
+  if (cursor) variables.cursor = cursor
+  const value = await graphqlGet(settings, OPERATIONS.combinedLists, variables, signal, true)
+  return parseTwitterLists(value)
+}
+
+export async function fetchListTimeline(settings: RelaySettings, listId: string, cursor?: string, signal?: AbortSignal): Promise<TimelinePage> {
+  const variables: Record<string, unknown> = { listId, count: 40 }
+  if (cursor) variables.cursor = cursor
+  const value = await graphqlGet(settings, OPERATIONS.listTimeline, variables, signal)
   return parseTimeline(value)
 }
 

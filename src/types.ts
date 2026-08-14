@@ -82,6 +82,27 @@ export interface TimelinePage {
   nextCursor?: string
 }
 
+export interface TwitterList {
+  id: string
+  name: string
+  description: string
+  memberCount: number
+  subscriberCount: number
+  private: boolean
+  pinned: boolean
+  bannerUrl?: string
+  owner?: {
+    name: string
+    handle: string
+    avatarUrl: string
+  }
+}
+
+export interface TwitterListPage {
+  lists: TwitterList[]
+  nextCursor?: string
+}
+
 export type TimelineKind = 'for-you' | 'following'
 
 export interface ConversationPage {
